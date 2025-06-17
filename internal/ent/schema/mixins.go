@@ -1,0 +1,24 @@
+package schema
+
+import (
+	"time"
+
+	"entgo.io/ent"
+	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/mixin"
+	"github.com/google/uuid"
+)
+
+type BaseMixin struct {
+	mixin.Schema
+}
+
+func (BaseMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("id").DefaultFunc(func() string {
+			return uuid.Must(uuid.NewV7()).String()
+		}),
+		field.Time("created_at").Default(time.Now),
+		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
+	}
+}
