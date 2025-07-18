@@ -43,24 +43,25 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   userPresence,
   className,
 }) => {
+  const avatarClass = cn(sizeClasses[size], className);
+  const statusClass = cn(
+    "absolute rounded-full border-2 border-background",
+    statusSizeClasses[size],
+    showStatus && userPresence
+      ? getStatusColor(userPresence.status)
+      : "bg-gray-400"
+  );
+
   return (
-    <div className={cn("relative", className)}>
-      <Avatar className={cn(sizeClasses[size])}>
+    <div className="relative">
+      <Avatar className={avatarClass}>
         <AvatarImage src={user.avatar_url} alt={user.name} />
-        <AvatarFallback className="bg-primary/10 text-primary font-medium">
+        <AvatarFallback className="bg-primary/10 text-primary font-medium text-xs">
           {getInitials(user.name)}
         </AvatarFallback>
       </Avatar>
 
-      {showStatus && userPresence && (
-        <div
-          className={cn(
-            "absolute rounded-full border-2 border-background",
-            statusSizeClasses[size],
-            getStatusColor(userPresence.status)
-          )}
-        />
-      )}
+      {showStatus && <div className={statusClass} />}
     </div>
   );
 };

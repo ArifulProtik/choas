@@ -8,28 +8,29 @@ This feature enables private one-on-one messaging and voice calling between auth
 
 ### Requirement 1
 
-**User Story:** As an authenticated user, I want to manage my friend relationships, so that I can control who can message and call me.
+**User Story:** As an authenticated user, I want to search for and connect with other users, so that I can initiate private conversations with them.
 
 #### Acceptance Criteria
 
-1. WHEN a user searches for another user by username THEN the system SHALL display matching users with their friendship status
-2. WHEN a user sends a friend request THEN the system SHALL notify the recipient and show pending status to the sender
-3. WHEN a user receives a friend request THEN the system SHALL display the request with accept/decline options
-4. WHEN a user accepts a friend request THEN the system SHALL establish a mutual friendship and enable messaging/calling
-5. WHEN a user declines a friend request THEN the system SHALL remove the request without establishing friendship
-6. WHEN a user removes a friend THEN the system SHALL end the friendship and disable messaging/calling between them
+1. WHEN a user searches for another user by username THEN the system SHALL display matching users who are not blocked
+2. WHEN a user selects another user to message THEN the system SHALL create or retrieve an existing private conversation
+3. WHEN a user attempts to message a blocked user THEN the system SHALL prevent conversation creation and show appropriate error message
+4. WHEN a user blocks another user THEN the system SHALL prevent future messages and calls from that user
+5. WHEN a user unblocks another user THEN the system SHALL restore normal messaging capabilities
+6. WHEN a user views their conversations THEN the system SHALL only display conversations with users who haven't blocked them
+7. WHEN any authenticated user attempts to message another authenticated user THEN the system SHALL allow conversation creation without requiring a friend relationship
 
 ### Requirement 2
 
-**User Story:** As an authenticated user, I want to start a private conversation with a friend, so that I can communicate privately outside of guild channels.
+**User Story:** As an authenticated user, I want to start a private conversation with another user, so that I can communicate privately outside of guild channels.
 
 #### Acceptance Criteria
 
-1. WHEN a user searches for friends to message THEN the system SHALL display only accepted friends who are not blocked
-2. WHEN a user selects a friend to message THEN the system SHALL create or retrieve an existing private conversation
-3. IF a private conversation already exists between two friends THEN the system SHALL open the existing conversation
+1. WHEN a user searches for users to message THEN the system SHALL display available users who are not blocked
+2. WHEN a user selects another user to message THEN the system SHALL create or retrieve an existing private conversation
+3. IF a private conversation already exists between two users THEN the system SHALL open the existing conversation
 4. WHEN a user accesses their private conversations THEN the system SHALL display a list of all their active conversations ordered by most recent activity
-5. IF users are not friends THEN the system SHALL prevent conversation creation and show appropriate error message
+5. WHEN a user creates a new conversation THEN the system SHALL validate both participants are authenticated users
 
 ### Requirement 3
 
@@ -43,7 +44,6 @@ This feature enables private one-on-one messaging and voice calling between auth
 4. WHEN a user opens a conversation with unread messages THEN the system SHALL mark all messages as read
 5. IF a message fails to send THEN the system SHALL show an error indicator and allow retry
 6. WHEN a user is typing THEN the system SHALL show a typing indicator to the other participant
-7. IF users are not friends THEN the system SHALL prevent message sending and display appropriate error
 
 ### Requirement 4
 
@@ -67,7 +67,6 @@ This feature enables private one-on-one messaging and voice calling between auth
 4. WHEN a user declines a call THEN the system SHALL notify the caller that the call was declined
 5. IF a user is already in a call THEN the system SHALL show busy status and decline new incoming calls
 6. WHEN either participant ends the call THEN the system SHALL terminate the voice connection for both users
-7. IF users are not friends THEN the system SHALL prevent call initiation and show appropriate error message
 
 ### Requirement 6
 

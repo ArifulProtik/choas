@@ -117,8 +117,86 @@ export const mockUserPresence: UserPresence[] = [
   },
 ];
 
+// Generate additional mock messages for testing pagination and search
+const generateAdditionalMessages = (): Message[] => {
+  const additionalMessages: Message[] = [];
+  const baseDate = new Date("2024-01-19T08:00:00Z");
+
+  // Generate messages for conv_1 (Alice and Bob)
+  const conv1Messages = [
+    "Good morning! How was your weekend?",
+    "It was great! Went hiking with some friends. How about yours?",
+    "Nice! I spent most of it working on that new project we discussed.",
+    "Oh right, the messaging app! How's it coming along?",
+    "Pretty well actually. I've been working on the UI components.",
+    "That sounds exciting! Can't wait to see it.",
+    "I'll show you a demo when we meet next week.",
+    "Perfect! Looking forward to it.",
+    "By the way, did you finish reading that book I recommended?",
+    "Yes! It was fantastic. Thanks for the suggestion.",
+    "I'm glad you liked it. The author has a new book coming out soon.",
+    "Really? I'll have to keep an eye out for it.",
+    "I can let you know when it's available if you want.",
+    "That would be great, thanks!",
+    "No problem. Always happy to share good books.",
+  ];
+
+  conv1Messages.forEach((content, index) => {
+    const messageDate = new Date(baseDate.getTime() + index * 30 * 60 * 1000); // 30 minutes apart
+    const isFromBob = index % 2 === 0;
+
+    additionalMessages.push({
+      id: `msg_old_${index + 1}`,
+      conversation_id: "conv_1",
+      sender: isFromBob ? mockUsers[1] : mockUsers[0], // Bob or Alice
+      content,
+      message_type: "text",
+      status: "read",
+      delivered_at: new Date(messageDate.getTime() + 1000).toISOString(),
+      read_at: new Date(messageDate.getTime() + 2000).toISOString(),
+      created_at: messageDate.toISOString(),
+      updated_at: new Date(messageDate.getTime() + 2000).toISOString(),
+    });
+  });
+
+  // Generate messages for conv_2 (Alice and Charlie)
+  const conv2Messages = [
+    "Hey Alice, I wanted to discuss the design mockups.",
+    "Sure! I've been looking at them. They look really good.",
+    "Thanks! I tried to keep the interface clean and intuitive.",
+    "You definitely succeeded. The color scheme works well too.",
+    "I was thinking we could add some micro-interactions.",
+    "That's a great idea. What did you have in mind?",
+    "Maybe some subtle animations when messages are sent?",
+    "Yes, that would add a nice touch of polish.",
+    "I'll work on some prototypes and show you later.",
+    "Sounds perfect. Let me know if you need any feedback.",
+  ];
+
+  conv2Messages.forEach((content, index) => {
+    const messageDate = new Date(baseDate.getTime() + index * 45 * 60 * 1000); // 45 minutes apart
+    const isFromCharlie = index % 2 === 0;
+
+    additionalMessages.push({
+      id: `msg_old_conv2_${index + 1}`,
+      conversation_id: "conv_2",
+      sender: isFromCharlie ? mockUsers[2] : mockUsers[0], // Charlie or Alice
+      content,
+      message_type: "text",
+      status: "read",
+      delivered_at: new Date(messageDate.getTime() + 1000).toISOString(),
+      read_at: new Date(messageDate.getTime() + 2000).toISOString(),
+      created_at: messageDate.toISOString(),
+      updated_at: new Date(messageDate.getTime() + 2000).toISOString(),
+    });
+  });
+
+  return additionalMessages;
+};
+
 // Mock messages
 export const mockMessages: Message[] = [
+  ...generateAdditionalMessages(),
   {
     id: "msg_1",
     conversation_id: "conv_1",

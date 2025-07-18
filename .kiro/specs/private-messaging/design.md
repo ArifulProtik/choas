@@ -16,14 +16,14 @@ graph TB
         WS[WebSocket Client]
         RTC[WebRTC Client]
     end
-    
+
     subgraph "Backend (Go)"
         API[REST API]
         WSS[WebSocket Server]
         SIG[Signaling Server]
         DB[(Database)]
     end
-    
+
     UI --> Store
     UI --> WS
     UI --> RTC
@@ -48,6 +48,7 @@ graph TB
 #### Database Schema Extensions
 
 **Conversation Entity**
+
 ```go
 type Conversation struct {
     ID          string    `json:"id"`
@@ -60,6 +61,7 @@ type Conversation struct {
 ```
 
 **Message Entity**
+
 ```go
 type Message struct {
     ID             string    `json:"id"`
@@ -74,6 +76,7 @@ type Message struct {
 ```
 
 **UserPresence Entity**
+
 ```go
 type UserPresence struct {
     UserID       string    `json:"user_id"`
@@ -84,6 +87,7 @@ type UserPresence struct {
 ```
 
 **BlockedUser Entity**
+
 ```go
 type BlockedUser struct {
     BlockerID  string    `json:"blocker_id"`
@@ -95,6 +99,7 @@ type BlockedUser struct {
 #### REST API Endpoints
 
 **Conversation Management**
+
 - `GET /api/conversations` - List user's conversations
 - `POST /api/conversations` - Create/get conversation with user
 - `DELETE /api/conversations/:id` - Delete conversation (user's view)
@@ -103,12 +108,14 @@ type BlockedUser struct {
 - `PUT /api/conversations/:id/read` - Mark messages as read
 
 **User Management**
+
 - `GET /api/users/search?q=username` - Search users
 - `POST /api/users/:id/block` - Block user
 - `DELETE /api/users/:id/block` - Unblock user
 - `GET /api/users/blocked` - List blocked users
 
 **Call Management**
+
 - `POST /api/calls/initiate` - Initiate call
 - `POST /api/calls/:id/accept` - Accept call
 - `POST /api/calls/:id/decline` - Decline call
@@ -117,6 +124,7 @@ type BlockedUser struct {
 #### WebSocket Server
 
 **Connection Management**
+
 ```go
 type WSConnection struct {
     UserID     string
@@ -134,6 +142,7 @@ type Hub struct {
 ```
 
 **Message Types**
+
 ```go
 type WSMessage struct {
     Type    string      `json:"type"`
@@ -146,6 +155,7 @@ type WSMessage struct {
 #### WebRTC Signaling Server
 
 **Signaling Messages**
+
 ```go
 type SignalingMessage struct {
     Type         string `json:"type"` // offer, answer, ice-candidate
@@ -162,6 +172,7 @@ type SignalingMessage struct {
 #### Zustand Store Extensions
 
 **Messaging Store**
+
 ```typescript
 interface MessagingState {
   conversations: Conversation[];
@@ -170,25 +181,30 @@ interface MessagingState {
   unreadCounts: Record<string, number>;
   typingUsers: Record<string, string[]>;
   onlineUsers: Set<string>;
-  
+
   // Actions
   setConversations: (conversations: Conversation[]) => void;
   addMessage: (conversationId: string, message: Message) => void;
   markAsRead: (conversationId: string) => void;
-  setTyping: (conversationId: string, userId: string, isTyping: boolean) => void;
+  setTyping: (
+    conversationId: string,
+    userId: string,
+    isTyping: boolean
+  ) => void;
   setUserOnline: (userId: string, isOnline: boolean) => void;
 }
 ```
 
 **Call Store**
+
 ```typescript
 interface CallState {
   activeCall: Call | null;
   incomingCall: Call | null;
-  callStatus: 'idle' | 'calling' | 'ringing' | 'connected' | 'ended';
+  callStatus: "idle" | "calling" | "ringing" | "connected" | "ended";
   isMuted: boolean;
   volume: number;
-  
+
   // Actions
   initiateCall: (userId: string) => void;
   acceptCall: (callId: string) => void;
@@ -202,17 +218,20 @@ interface CallState {
 #### React Components
 
 **ConversationList Component**
+
 - Displays list of conversations with last message preview
 - Shows unread message counts
 - Handles conversation selection
 
 **ChatWindow Component**
+
 - Message display with infinite scroll for history
 - Message input with typing indicators
 - Call initiation button
 - Online status display
 
 **CallInterface Component**
+
 - Incoming call notification
 - Active call controls (mute, volume, end call)
 - Connection quality indicators
@@ -220,12 +239,13 @@ interface CallState {
 #### WebSocket Client
 
 **Connection Management**
+
 ```typescript
 class WebSocketClient {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  
+
   connect(token: string): void;
   disconnect(): void;
   sendMessage(message: WSMessage): void;
@@ -237,15 +257,18 @@ class WebSocketClient {
 #### WebRTC Client
 
 **Peer Connection Management**
+
 ```typescript
 class WebRTCClient {
   private peerConnection: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
   private remoteStream: MediaStream | null = null;
-  
+
   async initializeCall(isInitiator: boolean): Promise<void>;
   async createOffer(): Promise<RTCSessionDescriptionInit>;
-  async createAnswer(offer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit>;
+  async createAnswer(
+    offer: RTCSessionDescriptionInit
+  ): Promise<RTCSessionDescriptionInit>;
   async handleAnswer(answer: RTCSessionDescriptionInit): void;
   async addIceCandidate(candidate: RTCIceCandidateInit): void;
   endCall(): void;
@@ -281,7 +304,7 @@ interface Message {
   conversation_id: string;
   sender: User;
   content: string;
-  message_type: 'text' | 'call_start' | 'call_end';
+  message_type: "text" | "call_start" | "call_end";
   delivered_at?: string;
   read_at?: string;
   created_at: string;
@@ -291,14 +314,14 @@ interface Call {
   id: string;
   caller: User;
   callee: User;
-  status: 'pending' | 'accepted' | 'declined' | 'ended';
+  status: "pending" | "accepted" | "declined" | "ended";
   started_at?: string;
   ended_at?: string;
 }
 
 interface UserPresence {
   user_id: string;
-  status: 'online' | 'offline' | 'in_call';
+  status: "online" | "offline" | "in_call";
   last_seen_at: string;
 }
 ```
@@ -308,16 +331,19 @@ interface UserPresence {
 ### Backend Error Handling
 
 **Database Errors**
+
 - Connection failures: Retry with exponential backoff
 - Constraint violations: Return appropriate HTTP status codes
 - Transaction failures: Rollback and return error
 
 **WebSocket Errors**
+
 - Connection drops: Client-side reconnection logic
 - Message delivery failures: Store and retry mechanism
 - Authentication failures: Force re-authentication
 
 **WebRTC Errors**
+
 - ICE connection failures: Fallback to TURN servers
 - Media access denied: Graceful degradation
 - Signaling failures: Retry mechanism
@@ -325,76 +351,66 @@ interface UserPresence {
 ### Frontend Error Handling
 
 **Network Errors**
+
 - API failures: Toast notifications with retry options
 - WebSocket disconnections: Automatic reconnection
 - WebRTC failures: User-friendly error messages
 
 **State Management Errors**
+
 - Invalid state transitions: Reset to safe state
 - Data synchronization issues: Refresh from server
 
-## Testing Strategy
+## Component Architecture
 
-### Backend Testing
+### Frontend Component Structure
 
-**Unit Tests**
-- Service layer methods for CRUD operations
-- WebSocket message handling logic
-- WebRTC signaling message processing
-- Authentication and authorization checks
+Based on the modular UI refactoring, the components are organized as follows:
 
-**Integration Tests**
-- REST API endpoints with database
-- WebSocket connection and message flow
-- End-to-end conversation creation and messaging
+**Messaging Components**
 
-**Load Tests**
-- Concurrent WebSocket connections
-- Message throughput under load
-- Database performance with large message volumes
+- `ConversationList` - Main conversation list with search functionality
+- `ChatWindow` - Message display and input interface
+- `UserProfile` - User information and status display
+- `NavigationSection` - Messaging navigation controls
 
-### Frontend Testing
+**Chat Window Sub-components**
 
-**Component Tests**
-- Message rendering and interaction
-- Call interface state management
-- Conversation list functionality
+- `ChatHeader` - Conversation header with user info and call controls
+- `MessageList` - Scrollable message display with pagination
+- `MessageItem` - Individual message rendering
+- `ChatInput` - Message composition and sending
+- `TypingIndicator` - Real-time typing status display
 
-**Integration Tests**
-- WebSocket message handling
-- WebRTC call establishment
-- Store state synchronization
+**Conversation List Sub-components**
 
-**E2E Tests**
-- Complete conversation flow
-- Voice call initiation and management
-- Real-time message delivery
+- `ConversationItem` - Individual conversation preview
+- `ConversationListHeader` - List header with controls
+- `UserSearchModal` - User search and selection interface
 
-### Manual Testing
+**Shared Components**
 
-**Cross-browser Compatibility**
-- WebRTC support across browsers
-- WebSocket connection stability
-- Audio quality and latency
-
-**Mobile Responsiveness**
-- Touch interactions for call controls
-- Message input on mobile keyboards
-- Notification handling
+- `UserAvatar` - Consistent user avatar display
+- `MessagePreview` - Message preview formatting
+- `EmptyState` - Empty state handling
+- `LoadingSpinner` - Loading state indicators
 
 ## Security Considerations
 
 ### Authentication & Authorization
+
 - JWT token validation for all WebSocket connections
 - User permission checks for conversation access
 - Rate limiting for message sending and call initiation
 
 ### Data Protection
+
 - Message content encryption in transit (WSS/HTTPS)
 - Sensitive data masking in logs
 - User blocking enforcement at API level
 
 ### WebRTC Security
+
 - STUN/TURN server authentication
 - ICE candidate validation
 - Media stream access permissions
@@ -402,16 +418,19 @@ interface UserPresence {
 ## Performance Optimizations
 
 ### Database Optimizations
+
 - Indexes on conversation participants and message timestamps
 - Message pagination to limit query size
 - Connection pooling for concurrent requests
 
 ### Real-time Optimizations
+
 - WebSocket connection pooling
 - Message batching for high-frequency updates
 - Presence update debouncing
 
 ### Frontend Optimizations
+
 - Virtual scrolling for large message lists
 - Message caching with TTL
 - Lazy loading of conversation history
