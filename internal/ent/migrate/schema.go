@@ -8,6 +8,117 @@ import (
 )
 
 var (
+	// GuildsColumns holds the columns for the "guilds" table.
+	GuildsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString},
+		{Name: "guild_icon", Type: field.TypeString, Nullable: true},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "guild_cover", Type: field.TypeString, Nullable: true},
+		{Name: "user_owned_guilds", Type: field.TypeString},
+	}
+	// GuildsTable holds the schema information for the "guilds" table.
+	GuildsTable = &schema.Table{
+		Name:       "guilds",
+		Columns:    GuildsColumns,
+		PrimaryKey: []*schema.Column{GuildsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "guilds_users_owned_guilds",
+				Columns:    []*schema.Column{GuildsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
+	// InvitationsColumns holds the columns for the "invitations" table.
+	InvitationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "code", Type: field.TypeString, Unique: true},
+		{Name: "invitation_guild", Type: field.TypeString, Nullable: true},
+		{Name: "invitation_invited_by", Type: field.TypeString, Nullable: true},
+	}
+	// InvitationsTable holds the schema information for the "invitations" table.
+	InvitationsTable = &schema.Table{
+		Name:       "invitations",
+		Columns:    InvitationsColumns,
+		PrimaryKey: []*schema.Column{InvitationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "invitations_guilds_guild",
+				Columns:    []*schema.Column{InvitationsColumns[4]},
+				RefColumns: []*schema.Column{GuildsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "invitations_users_invited_by",
+				Columns:    []*schema.Column{InvitationsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// MembersColumns holds the columns for the "members" table.
+	MembersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "nickname", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "joined_at", Type: field.TypeTime},
+		{Name: "is_muted", Type: field.TypeBool, Default: false},
+		{Name: "is_deafened", Type: field.TypeBool, Default: false},
+		{Name: "is_bannned", Type: field.TypeBool, Default: false},
+		{Name: "guild_guild_members", Type: field.TypeString},
+		{Name: "user_member_of", Type: field.TypeString},
+	}
+	// MembersTable holds the schema information for the "members" table.
+	MembersTable = &schema.Table{
+		Name:       "members",
+		Columns:    MembersColumns,
+		PrimaryKey: []*schema.Column{MembersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "members_guilds_guild_members",
+				Columns:    []*schema.Column{MembersColumns[8]},
+				RefColumns: []*schema.Column{GuildsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "members_users_member_of",
+				Columns:    []*schema.Column{MembersColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
+	// SessionsColumns holds the columns for the "sessions" table.
+	SessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "token", Type: field.TypeString, Unique: true},
+		{Name: "ip", Type: field.TypeString},
+		{Name: "user_agent", Type: field.TypeString},
+		{Name: "user_sessions", Type: field.TypeString},
+	}
+	// SessionsTable holds the schema information for the "sessions" table.
+	SessionsTable = &schema.Table{
+		Name:       "sessions",
+		Columns:    SessionsColumns,
+		PrimaryKey: []*schema.Column{SessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sessions_users_sessions",
+				Columns:    []*schema.Column{SessionsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -16,7 +127,7 @@ var (
 		{Name: "name", Type: field.TypeString, Size: 60},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString, Nullable: true},
-		{Name: "username", Type: field.TypeString},
+		{Name: "username", Type: field.TypeString, Unique: true},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "avater_url", Type: field.TypeString, Nullable: true},
 		{Name: "cover_url", Type: field.TypeString, Nullable: true},
@@ -29,9 +140,19 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		GuildsTable,
+		InvitationsTable,
+		MembersTable,
+		SessionsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	GuildsTable.ForeignKeys[0].RefTable = UsersTable
+	InvitationsTable.ForeignKeys[0].RefTable = GuildsTable
+	InvitationsTable.ForeignKeys[1].RefTable = UsersTable
+	MembersTable.ForeignKeys[0].RefTable = GuildsTable
+	MembersTable.ForeignKeys[1].RefTable = UsersTable
+	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 }

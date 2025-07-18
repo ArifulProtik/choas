@@ -3,7 +3,11 @@
 package ent
 
 import (
+	"kakashi/chaos/internal/ent/guild"
+	"kakashi/chaos/internal/ent/invitation"
+	"kakashi/chaos/internal/ent/member"
 	"kakashi/chaos/internal/ent/schema"
+	"kakashi/chaos/internal/ent/session"
 	"kakashi/chaos/internal/ent/user"
 	"time"
 )
@@ -12,6 +16,122 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	guildMixin := schema.Guild{}.Mixin()
+	guildMixinFields0 := guildMixin[0].Fields()
+	_ = guildMixinFields0
+	guildFields := schema.Guild{}.Fields()
+	_ = guildFields
+	// guildDescCreatedAt is the schema descriptor for created_at field.
+	guildDescCreatedAt := guildMixinFields0[1].Descriptor()
+	// guild.DefaultCreatedAt holds the default value on creation for the created_at field.
+	guild.DefaultCreatedAt = guildDescCreatedAt.Default.(func() time.Time)
+	// guildDescUpdatedAt is the schema descriptor for updated_at field.
+	guildDescUpdatedAt := guildMixinFields0[2].Descriptor()
+	// guild.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	guild.DefaultUpdatedAt = guildDescUpdatedAt.Default.(func() time.Time)
+	// guild.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	guild.UpdateDefaultUpdatedAt = guildDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// guildDescName is the schema descriptor for name field.
+	guildDescName := guildFields[0].Descriptor()
+	// guild.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	guild.NameValidator = guildDescName.Validators[0].(func(string) error)
+	// guildDescID is the schema descriptor for id field.
+	guildDescID := guildMixinFields0[0].Descriptor()
+	// guild.DefaultID holds the default value on creation for the id field.
+	guild.DefaultID = guildDescID.Default.(func() string)
+	invitationMixin := schema.Invitation{}.Mixin()
+	invitationMixinFields0 := invitationMixin[0].Fields()
+	_ = invitationMixinFields0
+	invitationFields := schema.Invitation{}.Fields()
+	_ = invitationFields
+	// invitationDescCreatedAt is the schema descriptor for created_at field.
+	invitationDescCreatedAt := invitationMixinFields0[1].Descriptor()
+	// invitation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	invitation.DefaultCreatedAt = invitationDescCreatedAt.Default.(func() time.Time)
+	// invitationDescUpdatedAt is the schema descriptor for updated_at field.
+	invitationDescUpdatedAt := invitationMixinFields0[2].Descriptor()
+	// invitation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	invitation.DefaultUpdatedAt = invitationDescUpdatedAt.Default.(func() time.Time)
+	// invitation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	invitation.UpdateDefaultUpdatedAt = invitationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// invitationDescCode is the schema descriptor for code field.
+	invitationDescCode := invitationFields[0].Descriptor()
+	// invitation.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	invitation.CodeValidator = invitationDescCode.Validators[0].(func(string) error)
+	// invitationDescID is the schema descriptor for id field.
+	invitationDescID := invitationMixinFields0[0].Descriptor()
+	// invitation.DefaultID holds the default value on creation for the id field.
+	invitation.DefaultID = invitationDescID.Default.(func() string)
+	memberMixin := schema.Member{}.Mixin()
+	memberMixinFields0 := memberMixin[0].Fields()
+	_ = memberMixinFields0
+	memberFields := schema.Member{}.Fields()
+	_ = memberFields
+	// memberDescCreatedAt is the schema descriptor for created_at field.
+	memberDescCreatedAt := memberMixinFields0[1].Descriptor()
+	// member.DefaultCreatedAt holds the default value on creation for the created_at field.
+	member.DefaultCreatedAt = memberDescCreatedAt.Default.(func() time.Time)
+	// memberDescUpdatedAt is the schema descriptor for updated_at field.
+	memberDescUpdatedAt := memberMixinFields0[2].Descriptor()
+	// member.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	member.DefaultUpdatedAt = memberDescUpdatedAt.Default.(func() time.Time)
+	// member.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	member.UpdateDefaultUpdatedAt = memberDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// memberDescNickname is the schema descriptor for nickname field.
+	memberDescNickname := memberFields[0].Descriptor()
+	// member.NicknameValidator is a validator for the "nickname" field. It is called by the builders before save.
+	member.NicknameValidator = memberDescNickname.Validators[0].(func(string) error)
+	// memberDescJoinedAt is the schema descriptor for joined_at field.
+	memberDescJoinedAt := memberFields[1].Descriptor()
+	// member.DefaultJoinedAt holds the default value on creation for the joined_at field.
+	member.DefaultJoinedAt = memberDescJoinedAt.Default.(func() time.Time)
+	// memberDescIsMuted is the schema descriptor for is_muted field.
+	memberDescIsMuted := memberFields[2].Descriptor()
+	// member.DefaultIsMuted holds the default value on creation for the is_muted field.
+	member.DefaultIsMuted = memberDescIsMuted.Default.(bool)
+	// memberDescIsDeafened is the schema descriptor for is_deafened field.
+	memberDescIsDeafened := memberFields[3].Descriptor()
+	// member.DefaultIsDeafened holds the default value on creation for the is_deafened field.
+	member.DefaultIsDeafened = memberDescIsDeafened.Default.(bool)
+	// memberDescIsBannned is the schema descriptor for is_bannned field.
+	memberDescIsBannned := memberFields[4].Descriptor()
+	// member.DefaultIsBannned holds the default value on creation for the is_bannned field.
+	member.DefaultIsBannned = memberDescIsBannned.Default.(bool)
+	// memberDescID is the schema descriptor for id field.
+	memberDescID := memberMixinFields0[0].Descriptor()
+	// member.DefaultID holds the default value on creation for the id field.
+	member.DefaultID = memberDescID.Default.(func() string)
+	sessionMixin := schema.Session{}.Mixin()
+	sessionMixinFields0 := sessionMixin[0].Fields()
+	_ = sessionMixinFields0
+	sessionFields := schema.Session{}.Fields()
+	_ = sessionFields
+	// sessionDescCreatedAt is the schema descriptor for created_at field.
+	sessionDescCreatedAt := sessionMixinFields0[1].Descriptor()
+	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
+	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
+	// sessionDescUpdatedAt is the schema descriptor for updated_at field.
+	sessionDescUpdatedAt := sessionMixinFields0[2].Descriptor()
+	// session.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	session.DefaultUpdatedAt = sessionDescUpdatedAt.Default.(func() time.Time)
+	// session.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	session.UpdateDefaultUpdatedAt = sessionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// sessionDescToken is the schema descriptor for token field.
+	sessionDescToken := sessionFields[0].Descriptor()
+	// session.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	session.TokenValidator = sessionDescToken.Validators[0].(func(string) error)
+	// sessionDescIP is the schema descriptor for ip field.
+	sessionDescIP := sessionFields[1].Descriptor()
+	// session.IPValidator is a validator for the "ip" field. It is called by the builders before save.
+	session.IPValidator = sessionDescIP.Validators[0].(func(string) error)
+	// sessionDescUserAgent is the schema descriptor for user_agent field.
+	sessionDescUserAgent := sessionFields[2].Descriptor()
+	// session.UserAgentValidator is a validator for the "user_agent" field. It is called by the builders before save.
+	session.UserAgentValidator = sessionDescUserAgent.Validators[0].(func(string) error)
+	// sessionDescID is the schema descriptor for id field.
+	sessionDescID := sessionMixinFields0[0].Descriptor()
+	// session.DefaultID holds the default value on creation for the id field.
+	session.DefaultID = sessionDescID.Default.(func() string)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0

@@ -8,6 +8,54 @@ import (
 	"kakashi/chaos/internal/ent"
 )
 
+// The GuildFunc type is an adapter to allow the use of ordinary
+// function as Guild mutator.
+type GuildFunc func(context.Context, *ent.GuildMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GuildFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GuildMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GuildMutation", m)
+}
+
+// The InvitationFunc type is an adapter to allow the use of ordinary
+// function as Invitation mutator.
+type InvitationFunc func(context.Context, *ent.InvitationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f InvitationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.InvitationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.InvitationMutation", m)
+}
+
+// The MemberFunc type is an adapter to allow the use of ordinary
+// function as Member mutator.
+type MemberFunc func(context.Context, *ent.MemberMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MemberMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemberMutation", m)
+}
+
+// The SessionFunc type is an adapter to allow the use of ordinary
+// function as Session mutator.
+type SessionFunc func(context.Context, *ent.SessionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SessionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SessionMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

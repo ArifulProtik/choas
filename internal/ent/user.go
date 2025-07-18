@@ -26,7 +26,7 @@ type User struct {
 	// Email holds the value of the "email" field.
 	Email string `json:"email,omitempty"`
 	// Password holds the value of the "password" field.
-	Password string `json:"password,omitempty"`
+	Password string `json:"-"`
 	// Username holds the value of the "username" field.
 	Username string `json:"username,omitempty"`
 	// Bio holds the value of the "bio" field.
@@ -34,8 +34,62 @@ type User struct {
 	// AvaterURL holds the value of the "avater_url" field.
 	AvaterURL string `json:"avater_url,omitempty"`
 	// CoverURL holds the value of the "cover_url" field.
-	CoverURL     string `json:"cover_url,omitempty"`
+	CoverURL string `json:"cover_url,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges        UserEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Sessions holds the value of the sessions edge.
+	Sessions []*Session `json:"sessions,omitempty"`
+	// OwnedGuilds holds the value of the owned_guilds edge.
+	OwnedGuilds []*Guild `json:"owned_guilds,omitempty"`
+	// Invitations holds the value of the invitations edge.
+	Invitations []*Invitation `json:"invitations,omitempty"`
+	// MemberOf holds the value of the member_of edge.
+	MemberOf []*Member `json:"member_of,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [4]bool
+}
+
+// SessionsOrErr returns the Sessions value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) SessionsOrErr() ([]*Session, error) {
+	if e.loadedTypes[0] {
+		return e.Sessions, nil
+	}
+	return nil, &NotLoadedError{edge: "sessions"}
+}
+
+// OwnedGuildsOrErr returns the OwnedGuilds value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OwnedGuildsOrErr() ([]*Guild, error) {
+	if e.loadedTypes[1] {
+		return e.OwnedGuilds, nil
+	}
+	return nil, &NotLoadedError{edge: "owned_guilds"}
+}
+
+// InvitationsOrErr returns the Invitations value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) InvitationsOrErr() ([]*Invitation, error) {
+	if e.loadedTypes[2] {
+		return e.Invitations, nil
+	}
+	return nil, &NotLoadedError{edge: "invitations"}
+}
+
+// MemberOfOrErr returns the MemberOf value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) MemberOfOrErr() ([]*Member, error) {
+	if e.loadedTypes[3] {
+		return e.MemberOf, nil
+	}
+	return nil, &NotLoadedError{edge: "member_of"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -135,6 +189,26 @@ func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
 }
 
+// QuerySessions queries the "sessions" edge of the User entity.
+func (u *User) QuerySessions() *SessionQuery {
+	return NewUserClient(u.config).QuerySessions(u)
+}
+
+// QueryOwnedGuilds queries the "owned_guilds" edge of the User entity.
+func (u *User) QueryOwnedGuilds() *GuildQuery {
+	return NewUserClient(u.config).QueryOwnedGuilds(u)
+}
+
+// QueryInvitations queries the "invitations" edge of the User entity.
+func (u *User) QueryInvitations() *InvitationQuery {
+	return NewUserClient(u.config).QueryInvitations(u)
+}
+
+// QueryMemberOf queries the "member_of" edge of the User entity.
+func (u *User) QueryMemberOf() *MemberQuery {
+	return NewUserClient(u.config).QueryMemberOf(u)
+}
+
 // Update returns a builder for updating this User.
 // Note that you need to call User.Unwrap() before calling this method if this User
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -170,8 +244,7 @@ func (u *User) String() string {
 	builder.WriteString("email=")
 	builder.WriteString(u.Email)
 	builder.WriteString(", ")
-	builder.WriteString("password=")
-	builder.WriteString(u.Password)
+	builder.WriteString("password=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("username=")
 	builder.WriteString(u.Username)

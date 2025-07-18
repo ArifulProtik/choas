@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -31,8 +32,44 @@ const (
 	FieldAvaterURL = "avater_url"
 	// FieldCoverURL holds the string denoting the cover_url field in the database.
 	FieldCoverURL = "cover_url"
+	// EdgeSessions holds the string denoting the sessions edge name in mutations.
+	EdgeSessions = "sessions"
+	// EdgeOwnedGuilds holds the string denoting the owned_guilds edge name in mutations.
+	EdgeOwnedGuilds = "owned_guilds"
+	// EdgeInvitations holds the string denoting the invitations edge name in mutations.
+	EdgeInvitations = "invitations"
+	// EdgeMemberOf holds the string denoting the member_of edge name in mutations.
+	EdgeMemberOf = "member_of"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// SessionsTable is the table that holds the sessions relation/edge.
+	SessionsTable = "sessions"
+	// SessionsInverseTable is the table name for the Session entity.
+	// It exists in this package in order to avoid circular dependency with the "session" package.
+	SessionsInverseTable = "sessions"
+	// SessionsColumn is the table column denoting the sessions relation/edge.
+	SessionsColumn = "user_sessions"
+	// OwnedGuildsTable is the table that holds the owned_guilds relation/edge.
+	OwnedGuildsTable = "guilds"
+	// OwnedGuildsInverseTable is the table name for the Guild entity.
+	// It exists in this package in order to avoid circular dependency with the "guild" package.
+	OwnedGuildsInverseTable = "guilds"
+	// OwnedGuildsColumn is the table column denoting the owned_guilds relation/edge.
+	OwnedGuildsColumn = "user_owned_guilds"
+	// InvitationsTable is the table that holds the invitations relation/edge.
+	InvitationsTable = "invitations"
+	// InvitationsInverseTable is the table name for the Invitation entity.
+	// It exists in this package in order to avoid circular dependency with the "invitation" package.
+	InvitationsInverseTable = "invitations"
+	// InvitationsColumn is the table column denoting the invitations relation/edge.
+	InvitationsColumn = "invitation_invited_by"
+	// MemberOfTable is the table that holds the member_of relation/edge.
+	MemberOfTable = "members"
+	// MemberOfInverseTable is the table name for the Member entity.
+	// It exists in this package in order to avoid circular dependency with the "member" package.
+	MemberOfInverseTable = "members"
+	// MemberOfColumn is the table column denoting the member_of relation/edge.
+	MemberOfColumn = "user_member_of"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -129,4 +166,88 @@ func ByAvaterURL(opts ...sql.OrderTermOption) OrderOption {
 // ByCoverURL orders the results by the cover_url field.
 func ByCoverURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCoverURL, opts...).ToFunc()
+}
+
+// BySessionsCount orders the results by sessions count.
+func BySessionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSessionsStep(), opts...)
+	}
+}
+
+// BySessions orders the results by sessions terms.
+func BySessions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSessionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOwnedGuildsCount orders the results by owned_guilds count.
+func ByOwnedGuildsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOwnedGuildsStep(), opts...)
+	}
+}
+
+// ByOwnedGuilds orders the results by owned_guilds terms.
+func ByOwnedGuilds(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOwnedGuildsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByInvitationsCount orders the results by invitations count.
+func ByInvitationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newInvitationsStep(), opts...)
+	}
+}
+
+// ByInvitations orders the results by invitations terms.
+func ByInvitations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newInvitationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByMemberOfCount orders the results by member_of count.
+func ByMemberOfCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newMemberOfStep(), opts...)
+	}
+}
+
+// ByMemberOf orders the results by member_of terms.
+func ByMemberOf(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMemberOfStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newSessionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SessionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SessionsTable, SessionsColumn),
+	)
+}
+func newOwnedGuildsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OwnedGuildsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OwnedGuildsTable, OwnedGuildsColumn),
+	)
+}
+func newInvitationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(InvitationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, InvitationsTable, InvitationsColumn),
+	)
+}
+func newMemberOfStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MemberOfInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, MemberOfTable, MemberOfColumn),
+	)
 }

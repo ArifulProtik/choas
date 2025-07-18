@@ -6,6 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"kakashi/chaos/internal/ent/guild"
+	"kakashi/chaos/internal/ent/invitation"
+	"kakashi/chaos/internal/ent/member"
+	"kakashi/chaos/internal/ent/session"
 	"kakashi/chaos/internal/ent/user"
 	"time"
 
@@ -134,6 +138,66 @@ func (uc *UserCreate) SetNillableID(s *string) *UserCreate {
 		uc.SetID(*s)
 	}
 	return uc
+}
+
+// AddSessionIDs adds the "sessions" edge to the Session entity by IDs.
+func (uc *UserCreate) AddSessionIDs(ids ...string) *UserCreate {
+	uc.mutation.AddSessionIDs(ids...)
+	return uc
+}
+
+// AddSessions adds the "sessions" edges to the Session entity.
+func (uc *UserCreate) AddSessions(s ...*Session) *UserCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return uc.AddSessionIDs(ids...)
+}
+
+// AddOwnedGuildIDs adds the "owned_guilds" edge to the Guild entity by IDs.
+func (uc *UserCreate) AddOwnedGuildIDs(ids ...string) *UserCreate {
+	uc.mutation.AddOwnedGuildIDs(ids...)
+	return uc
+}
+
+// AddOwnedGuilds adds the "owned_guilds" edges to the Guild entity.
+func (uc *UserCreate) AddOwnedGuilds(g ...*Guild) *UserCreate {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return uc.AddOwnedGuildIDs(ids...)
+}
+
+// AddInvitationIDs adds the "invitations" edge to the Invitation entity by IDs.
+func (uc *UserCreate) AddInvitationIDs(ids ...string) *UserCreate {
+	uc.mutation.AddInvitationIDs(ids...)
+	return uc
+}
+
+// AddInvitations adds the "invitations" edges to the Invitation entity.
+func (uc *UserCreate) AddInvitations(i ...*Invitation) *UserCreate {
+	ids := make([]string, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return uc.AddInvitationIDs(ids...)
+}
+
+// AddMemberOfIDs adds the "member_of" edge to the Member entity by IDs.
+func (uc *UserCreate) AddMemberOfIDs(ids ...string) *UserCreate {
+	uc.mutation.AddMemberOfIDs(ids...)
+	return uc
+}
+
+// AddMemberOf adds the "member_of" edges to the Member entity.
+func (uc *UserCreate) AddMemberOf(m ...*Member) *UserCreate {
+	ids := make([]string, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return uc.AddMemberOfIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -292,6 +356,70 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.CoverURL(); ok {
 		_spec.SetField(user.FieldCoverURL, field.TypeString, value)
 		_node.CoverURL = value
+	}
+	if nodes := uc.mutation.SessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.OwnedGuildsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OwnedGuildsTable,
+			Columns: []string{user.OwnedGuildsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.InvitationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.InvitationsTable,
+			Columns: []string{user.InvitationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(invitation.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.MemberOfIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MemberOfTable,
+			Columns: []string{user.MemberOfColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

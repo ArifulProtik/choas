@@ -6,7 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"kakashi/chaos/internal/ent/guild"
+	"kakashi/chaos/internal/ent/invitation"
+	"kakashi/chaos/internal/ent/member"
 	"kakashi/chaos/internal/ent/predicate"
+	"kakashi/chaos/internal/ent/session"
 	"kakashi/chaos/internal/ent/user"
 	"time"
 
@@ -170,9 +174,153 @@ func (uu *UserUpdate) ClearCoverURL() *UserUpdate {
 	return uu
 }
 
+// AddSessionIDs adds the "sessions" edge to the Session entity by IDs.
+func (uu *UserUpdate) AddSessionIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddSessionIDs(ids...)
+	return uu
+}
+
+// AddSessions adds the "sessions" edges to the Session entity.
+func (uu *UserUpdate) AddSessions(s ...*Session) *UserUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return uu.AddSessionIDs(ids...)
+}
+
+// AddOwnedGuildIDs adds the "owned_guilds" edge to the Guild entity by IDs.
+func (uu *UserUpdate) AddOwnedGuildIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddOwnedGuildIDs(ids...)
+	return uu
+}
+
+// AddOwnedGuilds adds the "owned_guilds" edges to the Guild entity.
+func (uu *UserUpdate) AddOwnedGuilds(g ...*Guild) *UserUpdate {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return uu.AddOwnedGuildIDs(ids...)
+}
+
+// AddInvitationIDs adds the "invitations" edge to the Invitation entity by IDs.
+func (uu *UserUpdate) AddInvitationIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddInvitationIDs(ids...)
+	return uu
+}
+
+// AddInvitations adds the "invitations" edges to the Invitation entity.
+func (uu *UserUpdate) AddInvitations(i ...*Invitation) *UserUpdate {
+	ids := make([]string, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return uu.AddInvitationIDs(ids...)
+}
+
+// AddMemberOfIDs adds the "member_of" edge to the Member entity by IDs.
+func (uu *UserUpdate) AddMemberOfIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddMemberOfIDs(ids...)
+	return uu
+}
+
+// AddMemberOf adds the "member_of" edges to the Member entity.
+func (uu *UserUpdate) AddMemberOf(m ...*Member) *UserUpdate {
+	ids := make([]string, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return uu.AddMemberOfIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearSessions clears all "sessions" edges to the Session entity.
+func (uu *UserUpdate) ClearSessions() *UserUpdate {
+	uu.mutation.ClearSessions()
+	return uu
+}
+
+// RemoveSessionIDs removes the "sessions" edge to Session entities by IDs.
+func (uu *UserUpdate) RemoveSessionIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveSessionIDs(ids...)
+	return uu
+}
+
+// RemoveSessions removes "sessions" edges to Session entities.
+func (uu *UserUpdate) RemoveSessions(s ...*Session) *UserUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return uu.RemoveSessionIDs(ids...)
+}
+
+// ClearOwnedGuilds clears all "owned_guilds" edges to the Guild entity.
+func (uu *UserUpdate) ClearOwnedGuilds() *UserUpdate {
+	uu.mutation.ClearOwnedGuilds()
+	return uu
+}
+
+// RemoveOwnedGuildIDs removes the "owned_guilds" edge to Guild entities by IDs.
+func (uu *UserUpdate) RemoveOwnedGuildIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveOwnedGuildIDs(ids...)
+	return uu
+}
+
+// RemoveOwnedGuilds removes "owned_guilds" edges to Guild entities.
+func (uu *UserUpdate) RemoveOwnedGuilds(g ...*Guild) *UserUpdate {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return uu.RemoveOwnedGuildIDs(ids...)
+}
+
+// ClearInvitations clears all "invitations" edges to the Invitation entity.
+func (uu *UserUpdate) ClearInvitations() *UserUpdate {
+	uu.mutation.ClearInvitations()
+	return uu
+}
+
+// RemoveInvitationIDs removes the "invitations" edge to Invitation entities by IDs.
+func (uu *UserUpdate) RemoveInvitationIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveInvitationIDs(ids...)
+	return uu
+}
+
+// RemoveInvitations removes "invitations" edges to Invitation entities.
+func (uu *UserUpdate) RemoveInvitations(i ...*Invitation) *UserUpdate {
+	ids := make([]string, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return uu.RemoveInvitationIDs(ids...)
+}
+
+// ClearMemberOf clears all "member_of" edges to the Member entity.
+func (uu *UserUpdate) ClearMemberOf() *UserUpdate {
+	uu.mutation.ClearMemberOf()
+	return uu
+}
+
+// RemoveMemberOfIDs removes the "member_of" edge to Member entities by IDs.
+func (uu *UserUpdate) RemoveMemberOfIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveMemberOfIDs(ids...)
+	return uu
+}
+
+// RemoveMemberOf removes "member_of" edges to Member entities.
+func (uu *UserUpdate) RemoveMemberOf(m ...*Member) *UserUpdate {
+	ids := make([]string, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return uu.RemoveMemberOfIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -286,6 +434,186 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if uu.mutation.CoverURLCleared() {
 		_spec.ClearField(user.FieldCoverURL, field.TypeString)
+	}
+	if uu.mutation.SessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedSessionsIDs(); len(nodes) > 0 && !uu.mutation.SessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.SessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.OwnedGuildsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OwnedGuildsTable,
+			Columns: []string{user.OwnedGuildsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedOwnedGuildsIDs(); len(nodes) > 0 && !uu.mutation.OwnedGuildsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OwnedGuildsTable,
+			Columns: []string{user.OwnedGuildsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.OwnedGuildsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OwnedGuildsTable,
+			Columns: []string{user.OwnedGuildsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.InvitationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.InvitationsTable,
+			Columns: []string{user.InvitationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(invitation.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedInvitationsIDs(); len(nodes) > 0 && !uu.mutation.InvitationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.InvitationsTable,
+			Columns: []string{user.InvitationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(invitation.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.InvitationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.InvitationsTable,
+			Columns: []string{user.InvitationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(invitation.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.MemberOfCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MemberOfTable,
+			Columns: []string{user.MemberOfColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedMemberOfIDs(); len(nodes) > 0 && !uu.mutation.MemberOfCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MemberOfTable,
+			Columns: []string{user.MemberOfColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.MemberOfIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MemberOfTable,
+			Columns: []string{user.MemberOfColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -449,9 +777,153 @@ func (uuo *UserUpdateOne) ClearCoverURL() *UserUpdateOne {
 	return uuo
 }
 
+// AddSessionIDs adds the "sessions" edge to the Session entity by IDs.
+func (uuo *UserUpdateOne) AddSessionIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddSessionIDs(ids...)
+	return uuo
+}
+
+// AddSessions adds the "sessions" edges to the Session entity.
+func (uuo *UserUpdateOne) AddSessions(s ...*Session) *UserUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return uuo.AddSessionIDs(ids...)
+}
+
+// AddOwnedGuildIDs adds the "owned_guilds" edge to the Guild entity by IDs.
+func (uuo *UserUpdateOne) AddOwnedGuildIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddOwnedGuildIDs(ids...)
+	return uuo
+}
+
+// AddOwnedGuilds adds the "owned_guilds" edges to the Guild entity.
+func (uuo *UserUpdateOne) AddOwnedGuilds(g ...*Guild) *UserUpdateOne {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return uuo.AddOwnedGuildIDs(ids...)
+}
+
+// AddInvitationIDs adds the "invitations" edge to the Invitation entity by IDs.
+func (uuo *UserUpdateOne) AddInvitationIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddInvitationIDs(ids...)
+	return uuo
+}
+
+// AddInvitations adds the "invitations" edges to the Invitation entity.
+func (uuo *UserUpdateOne) AddInvitations(i ...*Invitation) *UserUpdateOne {
+	ids := make([]string, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return uuo.AddInvitationIDs(ids...)
+}
+
+// AddMemberOfIDs adds the "member_of" edge to the Member entity by IDs.
+func (uuo *UserUpdateOne) AddMemberOfIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddMemberOfIDs(ids...)
+	return uuo
+}
+
+// AddMemberOf adds the "member_of" edges to the Member entity.
+func (uuo *UserUpdateOne) AddMemberOf(m ...*Member) *UserUpdateOne {
+	ids := make([]string, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return uuo.AddMemberOfIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearSessions clears all "sessions" edges to the Session entity.
+func (uuo *UserUpdateOne) ClearSessions() *UserUpdateOne {
+	uuo.mutation.ClearSessions()
+	return uuo
+}
+
+// RemoveSessionIDs removes the "sessions" edge to Session entities by IDs.
+func (uuo *UserUpdateOne) RemoveSessionIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveSessionIDs(ids...)
+	return uuo
+}
+
+// RemoveSessions removes "sessions" edges to Session entities.
+func (uuo *UserUpdateOne) RemoveSessions(s ...*Session) *UserUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return uuo.RemoveSessionIDs(ids...)
+}
+
+// ClearOwnedGuilds clears all "owned_guilds" edges to the Guild entity.
+func (uuo *UserUpdateOne) ClearOwnedGuilds() *UserUpdateOne {
+	uuo.mutation.ClearOwnedGuilds()
+	return uuo
+}
+
+// RemoveOwnedGuildIDs removes the "owned_guilds" edge to Guild entities by IDs.
+func (uuo *UserUpdateOne) RemoveOwnedGuildIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveOwnedGuildIDs(ids...)
+	return uuo
+}
+
+// RemoveOwnedGuilds removes "owned_guilds" edges to Guild entities.
+func (uuo *UserUpdateOne) RemoveOwnedGuilds(g ...*Guild) *UserUpdateOne {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return uuo.RemoveOwnedGuildIDs(ids...)
+}
+
+// ClearInvitations clears all "invitations" edges to the Invitation entity.
+func (uuo *UserUpdateOne) ClearInvitations() *UserUpdateOne {
+	uuo.mutation.ClearInvitations()
+	return uuo
+}
+
+// RemoveInvitationIDs removes the "invitations" edge to Invitation entities by IDs.
+func (uuo *UserUpdateOne) RemoveInvitationIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveInvitationIDs(ids...)
+	return uuo
+}
+
+// RemoveInvitations removes "invitations" edges to Invitation entities.
+func (uuo *UserUpdateOne) RemoveInvitations(i ...*Invitation) *UserUpdateOne {
+	ids := make([]string, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return uuo.RemoveInvitationIDs(ids...)
+}
+
+// ClearMemberOf clears all "member_of" edges to the Member entity.
+func (uuo *UserUpdateOne) ClearMemberOf() *UserUpdateOne {
+	uuo.mutation.ClearMemberOf()
+	return uuo
+}
+
+// RemoveMemberOfIDs removes the "member_of" edge to Member entities by IDs.
+func (uuo *UserUpdateOne) RemoveMemberOfIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveMemberOfIDs(ids...)
+	return uuo
+}
+
+// RemoveMemberOf removes "member_of" edges to Member entities.
+func (uuo *UserUpdateOne) RemoveMemberOf(m ...*Member) *UserUpdateOne {
+	ids := make([]string, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return uuo.RemoveMemberOfIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -595,6 +1067,186 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if uuo.mutation.CoverURLCleared() {
 		_spec.ClearField(user.FieldCoverURL, field.TypeString)
+	}
+	if uuo.mutation.SessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedSessionsIDs(); len(nodes) > 0 && !uuo.mutation.SessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.SessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.OwnedGuildsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OwnedGuildsTable,
+			Columns: []string{user.OwnedGuildsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedOwnedGuildsIDs(); len(nodes) > 0 && !uuo.mutation.OwnedGuildsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OwnedGuildsTable,
+			Columns: []string{user.OwnedGuildsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.OwnedGuildsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OwnedGuildsTable,
+			Columns: []string{user.OwnedGuildsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.InvitationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.InvitationsTable,
+			Columns: []string{user.InvitationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(invitation.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedInvitationsIDs(); len(nodes) > 0 && !uuo.mutation.InvitationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.InvitationsTable,
+			Columns: []string{user.InvitationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(invitation.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.InvitationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.InvitationsTable,
+			Columns: []string{user.InvitationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(invitation.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.MemberOfCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MemberOfTable,
+			Columns: []string{user.MemberOfColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedMemberOfIDs(); len(nodes) > 0 && !uuo.mutation.MemberOfCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MemberOfTable,
+			Columns: []string{user.MemberOfColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.MemberOfIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MemberOfTable,
+			Columns: []string{user.MemberOfColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

@@ -6,5 +6,17 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Guild is the predicate function for guild builders.
+type Guild func(*sql.Selector)
+
+// Invitation is the predicate function for invitation builders.
+type Invitation func(*sql.Selector)
+
+// Member is the predicate function for member builders.
+type Member func(*sql.Selector)
+
+// Session is the predicate function for session builders.
+type Session func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
