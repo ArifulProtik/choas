@@ -5,13 +5,14 @@ import { Users } from "lucide-react";
 import { useMessagingStore } from "@/components/store/messaging-store";
 import { useAuthStore } from "@/components/store/auth-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SearchBar } from "./search-bar";
+import { SearchBar } from "@/components/search";
+import { useSearchStore } from "@/components/store/search-store";
 import { NavigationSection } from "./navigation-section";
 import { ConversationItem } from "./conversation-list/conversation-item";
 import { ConversationListHeader } from "./conversation-list/conversation-list-header";
 import { UserSearchModal } from "./conversation-list/user-search-modal";
-import { EmptyState } from "./shared/empty-state";
-import { LoadingSpinner } from "./shared/loading-spinner";
+import { BlockedUsersModal } from "./blocked-users-modal";
+import { EmptyState, LoadingSpinner } from "@/components/shared";
 
 export const ConversationList: React.FC = () => {
   const { user: currentUser } = useAuthStore();
@@ -22,12 +23,18 @@ export const ConversationList: React.FC = () => {
     searchQuery,
     setConversationSearch,
     showArchived,
+    toggleShowArchived,
     getUnreadCount,
     showUserSearch,
     setShowUserSearch,
+    showBlockedUsers,
+    setShowBlockedUsers,
     loading,
     error,
+    startConversation,
   } = useMessagingStore();
+
+  const { addToRecentSearches } = useSearchStore();
 
   // Local state for navigation section
   const [activeSection, setActiveSection] = useState<string>("messages");
@@ -36,9 +43,13 @@ export const ConversationList: React.FC = () => {
   const totalUnreadCount = getUnreadCount();
 
   const handleSelectUser = (userId: string) => {
-    // This would typically create a new conversation or navigate to existing one
-    // For now, we'll just close the modal
-    console.log("Selected user:", userId);
+    startConversation(userId);
+    setShowUserSearch(false);
+  };
+
+  const handleUserSelectFromSearch = (user: any) => {
+    addToRecentSearches(user);
+    startConversation(user.id);
   };
 
   const handleArchiveConversation = (conversationId: string) => {
@@ -58,12 +69,12 @@ export const ConversationList: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Discord-style Search Bar */}
+      {/* Global Search Bar */}
       <div className="p-4">
         <SearchBar
           placeholder="Find or start a conversation"
-          value={searchQuery}
-          onChange={setConversationSearch}
+          onUserSelect={handleUserSelectFromSearch}
+          className="w-full"
         />
       </div>
 
@@ -77,6 +88,9 @@ export const ConversationList: React.FC = () => {
       <ConversationListHeader
         totalUnreadCount={totalUnreadCount}
         onStartConversation={() => setShowUserSearch(true)}
+        onShowBlockedUsers={() => setShowBlockedUsers(true)}
+        onToggleArchived={toggleShowArchived}
+        showArchived={showArchived}
       />
 
       {/* Conversation List */}
@@ -132,6 +146,12 @@ export const ConversationList: React.FC = () => {
         isOpen={showUserSearch}
         onClose={() => setShowUserSearch(false)}
         onSelectUser={handleSelectUser}
+      />
+
+      {/* Blocked Users Modal */}
+      <BlockedUsersModal
+        isOpen={showBlockedUsers}
+        onClose={() => setShowBlockedUsers(false)}
       />
     </div>
   );

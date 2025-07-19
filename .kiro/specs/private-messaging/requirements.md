@@ -57,7 +57,7 @@ This feature enables private one-on-one messaging and voice calling between auth
 
 ### Requirement 5
 
-**User Story:** As a user, I want to initiate voice calls with friends I'm messaging, so that I can have real-time voice conversations.
+**User Story:** As a user, I want to initiate voice calls with other users I'm messaging, so that I can have real-time voice conversations.
 
 #### Acceptance Criteria
 

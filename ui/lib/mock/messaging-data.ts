@@ -317,7 +317,18 @@ export const mockConversations: Conversation[] = [
     id: "conv_4",
     participant1: mockUsers[0], // Alice
     participant2: mockUsers[4], // Eve
-    last_message: undefined,
+    last_message: {
+      id: "msg_archived",
+      conversation_id: "conv_4",
+      sender: mockUsers[4], // Eve
+      content: "This conversation was archived",
+      message_type: "text",
+      status: "read",
+      delivered_at: "2024-01-19T16:00:00Z",
+      read_at: "2024-01-19T16:01:00Z",
+      created_at: "2024-01-19T16:00:00Z",
+      updated_at: "2024-01-19T16:01:00Z",
+    },
     last_message_at: "2024-01-19T16:00:00Z",
     unread_count: 0,
     is_archived: true,

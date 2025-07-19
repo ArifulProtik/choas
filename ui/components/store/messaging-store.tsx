@@ -71,6 +71,13 @@ interface NotificationState {
   permissionGranted: boolean;
 }
 
+interface BlockedUserState {
+  blockedUsers: BlockedUser[];
+  loadingBlockedUsers: boolean;
+  blockingUser: boolean;
+  unblockingUser: boolean;
+}
+
 interface UIState {
   sidebarCollapsed: boolean;
   selectedUsers: string[];
@@ -86,6 +93,7 @@ interface MessagingState
     FriendState,
     PresenceState,
     NotificationState,
+    BlockedUserState,
     UIState {
   currentUserId: string | null;
 
@@ -97,6 +105,7 @@ interface MessagingState
     updates: Partial<Conversation>
   ) => void;
   removeConversation: (conversationId: string) => void;
+  deleteConversation: (conversationId: string) => void;
   setActiveConversation: (conversationId: string | null) => void;
   archiveConversation: (conversationId: string) => void;
   unarchiveConversation: (conversationId: string) => void;
@@ -148,6 +157,17 @@ interface MessagingState
   setNotificationPreferences: (preferences: NotificationPreferences) => void;
   setNotificationPermission: (granted: boolean) => void;
 
+  // Blocked user actions
+  setBlockedUsers: (blockedUsers: BlockedUser[]) => void;
+  addBlockedUser: (blockedUser: BlockedUser) => void;
+  removeBlockedUser: (userId: string) => void;
+  blockUser: (userId: string) => Promise<void>;
+  unblockUser: (userId: string) => Promise<void>;
+  setLoadingBlockedUsers: (loading: boolean) => void;
+  setBlockingUser: (blocking: boolean) => void;
+  setUnblockingUser: (unblocking: boolean) => void;
+  isUserBlocked: (userId: string) => boolean;
+
   // UI actions
   setSidebarCollapsed: (collapsed: boolean) => void;
   setSelectedUsers: (userIds: string[]) => void;
@@ -172,6 +192,9 @@ interface MessagingState
   getFriendsList: () => User[];
   getPendingFriendRequests: () => FriendRequest[];
   getSentFriendRequests: () => FriendRequest[];
+
+  // Search integration
+  startConversation: (userId: string) => Promise<void>;
 
   // WebSocket message handler
   handleWebSocketMessage: (message: WSMessage) => void;
@@ -226,6 +249,12 @@ const initialState = {
   },
   permissionGranted: false,
 
+  // Blocked user state
+  blockedUsers: [],
+  loadingBlockedUsers: false,
+  blockingUser: false,
+  unblockingUser: false,
+
   // UI state
   sidebarCollapsed: false,
   selectedUsers: [],
@@ -269,6 +298,23 @@ export const useMessagingStore = create<MessagingState>()(
           state.activeConversationId === conversationId
             ? null
             : state.activeConversationId,
+      })),
+
+    deleteConversation: (conversationId) =>
+      set((state) => ({
+        conversations: state.conversations.filter(
+          (conv) => conv.id !== conversationId
+        ),
+        activeConversationId:
+          state.activeConversationId === conversationId
+            ? null
+            : state.activeConversationId,
+        // Also remove messages for this conversation
+        messagesByConversation: Object.fromEntries(
+          Object.entries(state.messagesByConversation).filter(
+            ([id]) => id !== conversationId
+          )
+        ),
       })),
 
     setActiveConversation: (conversationId) =>
@@ -619,6 +665,89 @@ export const useMessagingStore = create<MessagingState>()(
     setShowFriendRequests: (showFriendRequests) => set({ showFriendRequests }),
     setShowBlockedUsers: (showBlockedUsers) => set({ showBlockedUsers }),
 
+    // Blocked user actions
+    setBlockedUsers: (blockedUsers) => set({ blockedUsers }),
+
+    addBlockedUser: (blockedUser) =>
+      set((state) => ({
+        blockedUsers: [...state.blockedUsers, blockedUser],
+      })),
+
+    removeBlockedUser: (userId) =>
+      set((state) => ({
+        blockedUsers: state.blockedUsers.filter(
+          (blocked) => blocked.blocked_user.id !== userId
+        ),
+      })),
+
+    blockUser: async (userId) => {
+      set({ blockingUser: true });
+      try {
+        // TODO: Implement API call to block user
+        // const response = await api.blockUser(userId);
+
+        // For now, simulate the API call
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Add to blocked users list (mock data)
+        const blockedUser: BlockedUser = {
+          id: `blocked-${userId}-${Date.now()}`,
+          blocked_user: {
+            id: userId,
+            name: "Blocked User",
+            username: "blocked_user",
+            email: "blocked@example.com",
+          },
+          blocked_at: new Date().toISOString(),
+        };
+
+        get().addBlockedUser(blockedUser);
+
+        // Remove any conversations with this user
+        set((state) => ({
+          conversations: state.conversations.filter(
+            (conv) =>
+              conv.participant1.id !== userId && conv.participant2.id !== userId
+          ),
+        }));
+      } catch (error) {
+        console.error("Failed to block user:", error);
+        throw error;
+      } finally {
+        set({ blockingUser: false });
+      }
+    },
+
+    unblockUser: async (userId) => {
+      set({ unblockingUser: true });
+      try {
+        // TODO: Implement API call to unblock user
+        // const response = await api.unblockUser(userId);
+
+        // For now, simulate the API call
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        get().removeBlockedUser(userId);
+      } catch (error) {
+        console.error("Failed to unblock user:", error);
+        throw error;
+      } finally {
+        set({ unblockingUser: false });
+      }
+    },
+
+    setLoadingBlockedUsers: (loadingBlockedUsers) =>
+      set({ loadingBlockedUsers }),
+    setBlockingUser: (blockingUser) => set({ blockingUser }),
+    setUnblockingUser: (unblockingUser) => set({ unblockingUser }),
+
+    isUserBlocked: (userId) => {
+      const state = get();
+      return state.blockedUsers.some(
+        (blocked) => blocked.blocked_user.id === userId
+      );
+    },
+
     // Computed getters
     getActiveConversation: () => {
       const state = get();
@@ -728,6 +857,60 @@ export const useMessagingStore = create<MessagingState>()(
     getSentFriendRequests: () => {
       const state = get();
       return state.sentFriendRequests.filter((req) => req.status === "pending");
+    },
+
+    // Search integration
+    startConversation: async (userId) => {
+      const state = get();
+      if (!state.currentUserId) return;
+
+      // Check if conversation already exists
+      const existingConversation = state.conversations.find(
+        (conv) =>
+          (conv.participant1.id === state.currentUserId &&
+            conv.participant2.id === userId) ||
+          (conv.participant1.id === userId &&
+            conv.participant2.id === state.currentUserId)
+      );
+
+      if (existingConversation) {
+        // Set as active conversation
+        get().setActiveConversation(existingConversation.id);
+        return;
+      }
+
+      try {
+        // TODO: Implement API call to create conversation
+        // const response = await api.createConversation(userId);
+
+        // For now, create a mock conversation
+        const newConversation: Conversation = {
+          id: `conv-${state.currentUserId}-${userId}-${Date.now()}`,
+          participant1: {
+            id: state.currentUserId,
+            name: "Current User",
+            username: "current_user",
+            email: "current@example.com",
+          },
+          participant2: {
+            id: userId,
+            name: "Other User",
+            username: "other_user",
+            email: "other@example.com",
+          },
+          last_message: null,
+          last_message_at: new Date().toISOString(),
+          unread_count: 0,
+          is_archived: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        get().addConversation(newConversation);
+        get().setActiveConversation(newConversation.id);
+      } catch (error) {
+        console.error("Failed to start conversation:", error);
+      }
     },
 
     // WebSocket message handler

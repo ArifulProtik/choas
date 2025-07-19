@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Send } from "lucide-react";
 import { useMessagingStore } from "@/components/store/messaging-store";
 import { useAuthStore } from "@/components/store/auth-store";
+import { useCallStore } from "@/components/store/call-store";
 import { ChatHeader } from "./chat-window/chat-header";
 import { MessageList } from "./chat-window/message-list";
 import { ChatInput } from "./chat-window/chat-input";
@@ -31,6 +32,9 @@ export const ChatWindow: React.FC = () => {
     hasMoreMessages,
     messageErrors,
   } = useMessagingStore();
+
+  // Call store integration - must be called before any conditional returns
+  const { activeCall, initiateCall, endCall } = useCallStore();
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -173,89 +177,103 @@ export const ChatWindow: React.FC = () => {
   const canCall = canCallUser(otherUser.id);
 
   const handleCallClick = () => {
-    // TODO: Implement call functionality
-    console.log("Starting call with:", otherUser.name);
+    // If we're in a call with this user, end the call
+    const isInCallWithUser =
+      activeCall &&
+      (activeCall.caller.id === otherUser.id ||
+        activeCall.callee.id === otherUser.id);
+
+    if (isInCallWithUser) {
+      endCall();
+    } else {
+      // Initiate a new call
+      initiateCall(otherUser.id);
+    }
   };
 
   return (
-    <div className="flex h-full bg-background overflow-hidden">
-      {/* Main Chat Area */}
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Chat Header */}
-        <div className="border-b border-border flex-shrink-0">
-          <ChatHeader
-            otherUser={otherUser}
-            userPresence={userPresence}
-            isOnline={isOnline}
-            canCall={canCall}
-            onCallClick={handleCallClick}
-            onSearchClick={handleToggleSearch}
-            onInfoClick={handleToggleUserProfile}
-            showUserProfile={showUserProfile}
-          />
-        </div>
-
-        {/* Search Bar */}
-        {showSearch && (
-          <div className="flex-shrink-0">
-            <MessageSearch
-              messages={messages}
-              onSearchResults={handleSearchResults}
-              onClose={handleToggleSearch}
-              isVisible={showSearch}
+    <>
+      <div className="flex h-full bg-background overflow-hidden">
+        {/* Main Chat Area */}
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Chat Header */}
+          <div className="border-b border-border flex-shrink-0">
+            <ChatHeader
+              otherUser={otherUser}
+              userPresence={userPresence}
+              isOnline={isOnline}
+              canCall={canCall}
+              onCallClick={handleCallClick}
+              onSearchClick={handleToggleSearch}
+              onInfoClick={handleToggleUserProfile}
+              showUserProfile={showUserProfile}
             />
           </div>
-        )}
 
-        {/* Messages Area */}
-        <div className="flex-1 min-h-0">
-          <MessageList
-            messages={messages}
-            currentUserId={currentUser.id}
-            isLoading={isLoading}
-            isLoadingMore={isLoadingMore}
-            hasMoreMessages={hasMore}
-            error={error}
-            typingUsers={conversationTypingUsers}
-            otherUserName={otherUser.name}
-            onRetryMessage={handleRetryMessage}
-            onLoadMoreMessages={handleLoadMoreMessages}
-            scrollAreaRef={scrollAreaRef}
-            searchQuery={showSearch ? searchQuery : ""}
-            searchResults={searchResultMessages}
-            currentSearchIndex={currentSearchIndex}
-          />
-        </div>
-
-        {/* Chat Input */}
-        <div className="flex-shrink-0">
-          {!canSend.canSend ? (
-            <div className="p-4 border-t border-border bg-muted/30">
-              <div className="flex items-center justify-center py-3">
-                <p className="text-sm text-muted-foreground">
-                  {canSend.reason || "You cannot send messages to this user"}
-                </p>
-              </div>
+          {/* Search Bar */}
+          {showSearch && (
+            <div className="flex-shrink-0">
+              <MessageSearch
+                messages={messages}
+                onSearchResults={handleSearchResults}
+                onClose={handleToggleSearch}
+                isVisible={showSearch}
+              />
             </div>
-          ) : (
-            <ChatInput
-              conversationId={conversation.id}
-              onSendMessage={handleSendMessage}
-              onTypingStart={handleTypingStart}
-              onTypingStop={handleTypingStop}
-              disabled={isLoading}
-              placeholder={`Message ${otherUser.name.split(" ")[0]}...`}
-            />
           )}
+
+          {/* Messages Area */}
+          <div className="flex-1 min-h-0">
+            <MessageList
+              messages={messages}
+              currentUserId={currentUser.id}
+              isLoading={isLoading}
+              isLoadingMore={isLoadingMore}
+              hasMoreMessages={hasMore}
+              error={error}
+              typingUsers={conversationTypingUsers}
+              otherUserName={otherUser.name}
+              onRetryMessage={handleRetryMessage}
+              onLoadMoreMessages={handleLoadMoreMessages}
+              scrollAreaRef={scrollAreaRef}
+              searchQuery={showSearch ? searchQuery : ""}
+              searchResults={searchResultMessages}
+              currentSearchIndex={currentSearchIndex}
+            />
+          </div>
+
+          {/* Chat Input */}
+          <div className="flex-shrink-0">
+            {!canSend.canSend ? (
+              <div className="p-4 border-t border-border bg-muted/30">
+                <div className="flex items-center justify-center py-3">
+                  <p className="text-sm text-muted-foreground">
+                    {canSend.reason || "You cannot send messages to this user"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ChatInput
+                conversationId={conversation.id}
+                onSendMessage={handleSendMessage}
+                onTypingStart={handleTypingStart}
+                onTypingStop={handleTypingStop}
+                disabled={isLoading}
+                placeholder={`Message ${otherUser.name.split(" ")[0]}...`}
+              />
+            )}
+          </div>
         </div>
+
+        {/* User Profile Sidebar */}
+        {showUserProfile && (
+          <div className="w-96 flex-shrink-0 h-full border-l border-border">
+            <UserProfile user={otherUser} onClose={handleToggleUserProfile} />
+          </div>
+        )}
       </div>
 
-      {/* User Profile Sidebar */}
-      {showUserProfile && (
-        <div className="w-96 flex-shrink-0 h-full border-l border-border">
-          <UserProfile user={otherUser} onClose={handleToggleUserProfile} />
-        </div>
-      )}
-    </div>
+      {/* Call interface is handled globally in the main layout */}
+    </>
   );
 };

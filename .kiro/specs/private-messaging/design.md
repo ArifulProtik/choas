@@ -2,7 +2,7 @@
 
 ## Overview
 
-The private messaging and voice calling feature enables real-time one-on-one communication between authenticated users. The system consists of three main components: persistent message storage, real-time communication via WebSockets, and peer-to-peer voice calling using WebRTC. The design leverages the existing authentication system and follows established patterns in the codebase.
+The private messaging and voice calling feature enables real-time one-on-one communication between authenticated users, along with comprehensive friend management, global user search, and notification systems. The system consists of five main components: persistent message storage, real-time communication via WebSockets, peer-to-peer voice calling using WebRTC, friend relationship management, and centralized notification handling. The design leverages the existing authentication system and follows established patterns in the codebase.
 
 ## Architecture
 
@@ -37,8 +37,8 @@ graph TB
 
 ### Communication Flow
 
-1. **REST API**: CRUD operations for conversations, message history, user search
-2. **WebSocket**: Real-time message delivery, typing indicators, presence updates
+1. **REST API**: CRUD operations for conversations, message history, user search, friend management, notifications
+2. **WebSocket**: Real-time message delivery, typing indicators, presence updates, notifications, friend requests
 3. **WebRTC**: Peer-to-peer voice communication with signaling server coordination
 
 ## Components and Interfaces
@@ -96,6 +96,34 @@ type BlockedUser struct {
 }
 ```
 
+**Friendship Entity**
+
+```go
+type Friendship struct {
+    ID        string    `json:"id"`
+    UserID    string    `json:"user_id"`
+    FriendID  string    `json:"friend_id"`
+    Status    string    `json:"status"` // pending, accepted, declined
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+```
+
+**Notification Entity**
+
+```go
+type Notification struct {
+    ID         string    `json:"id"`
+    UserID     string    `json:"user_id"`
+    Type       string    `json:"type"` // message, friend_request, call, system
+    Title      string    `json:"title"`
+    Content    string    `json:"content"`
+    RelatedID  *string   `json:"related_id"` // conversation_id, user_id, etc.
+    IsRead     bool      `json:"is_read"`
+    CreatedAt  time.Time `json:"created_at"`
+}
+```
+
 #### REST API Endpoints
 
 **Conversation Management**
@@ -120,6 +148,27 @@ type BlockedUser struct {
 - `POST /api/calls/:id/accept` - Accept call
 - `POST /api/calls/:id/decline` - Decline call
 - `POST /api/calls/:id/end` - End call
+
+**Friend Management**
+
+- `GET /api/friends` - List user's friends
+- `GET /api/friends/requests` - List pending friend requests (sent/received)
+- `POST /api/friends/request` - Send friend request
+- `POST /api/friends/accept/:id` - Accept friend request
+- `POST /api/friends/decline/:id` - Decline friend request
+- `DELETE /api/friends/:id` - Remove friend
+
+**Global Search**
+
+- `GET /api/search/users?q=query` - Global user search with filters
+- `GET /api/search/suggestions?q=query` - Real-time search suggestions
+
+**Notification Management**
+
+- `GET /api/notifications` - List user's notifications
+- `PUT /api/notifications/:id/read` - Mark notification as read
+- `PUT /api/notifications/read-all` - Mark all notifications as read
+- `DELETE /api/notifications/:id` - Delete notification
 
 #### WebSocket Server
 
@@ -149,7 +198,68 @@ type WSMessage struct {
     Payload interface{} `json:"payload"`
 }
 
-// Message types: message, typing, presence, call_request, call_response
+// Message types: message, typing, presence, call_request, call_response, notification, friend_request
+```
+
+**Real-time Notification System**
+
+```go
+type NotificationPayload struct {
+    NotificationID string `json:"notification_id"`
+    Type          string `json:"type"` // message, friend_request, call, system
+    Title         string `json:"title"`
+    Content       string `json:"content"`
+    RelatedID     string `json:"related_id,omitempty"`
+    CreatedAt     string `json:"created_at"`
+}
+
+type FriendRequestPayload struct {
+    RequestID    string `json:"request_id"`
+    SenderID     string `json:"sender_id"`
+    SenderName   string `json:"sender_name"`
+    SenderAvatar string `json:"sender_avatar,omitempty"`
+    Action       string `json:"action"` // sent, accepted, declined
+    CreatedAt    string `json:"created_at"`
+}
+```
+
+#### Real-time Notification Service
+
+**Notification Broadcasting**
+
+```go
+type NotificationService struct {
+    hub *Hub
+    db  *ent.Client
+}
+
+func (ns *NotificationService) SendNotification(userID string, notification *Notification) error {
+    // Store notification in database
+    // Send via WebSocket if user is online
+    // Queue for push notification if user is offline
+}
+
+func (ns *NotificationService) BroadcastFriendRequest(senderID, receiverID string, action string) error {
+    // Create friend request notification
+    // Send real-time update to both users
+    // Update friend request status
+}
+```
+
+**WebSocket Notification Handlers**
+
+```go
+func (h *Hub) HandleNotification(conn *WSConnection, message WSMessage) {
+    switch message.Type {
+    case "notification_read":
+        // Mark notification as read
+        // Broadcast read status update
+    case "friend_request_response":
+        // Handle accept/decline friend request
+        // Notify sender of response
+        // Update friendship status
+    }
+}
 ```
 
 #### WebRTC Signaling Server
@@ -215,6 +325,46 @@ interface CallState {
 }
 ```
 
+**Friend Store**
+
+```typescript
+interface FriendState {
+  friends: User[];
+  friendRequests: {
+    sent: FriendRequest[];
+    received: FriendRequest[];
+  };
+  searchResults: User[];
+  isSearching: boolean;
+
+  // Actions
+  loadFriends: () => void;
+  loadFriendRequests: () => void;
+  sendFriendRequest: (userId: string) => void;
+  acceptFriendRequest: (requestId: string) => void;
+  declineFriendRequest: (requestId: string) => void;
+  removeFriend: (friendId: string) => void;
+  searchUsers: (query: string) => void;
+}
+```
+
+**Notification Store**
+
+```typescript
+interface NotificationState {
+  notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
+
+  // Actions
+  loadNotifications: () => void;
+  markAsRead: (notificationId: string) => void;
+  markAllAsRead: () => void;
+  deleteNotification: (notificationId: string) => void;
+  addNotification: (notification: Notification) => void;
+}
+```
+
 #### React Components
 
 **ConversationList Component**
@@ -236,6 +386,24 @@ interface CallState {
 - Active call controls (mute, volume, end call)
 - Connection quality indicators
 
+**FriendList Component**
+
+- Display list of friends with online status
+- Friend request management (sent/received)
+- Friend removal and blocking options
+
+**GlobalSearch Component**
+
+- Prominent search bar with real-time suggestions
+- User search results with profile previews
+- Action buttons (message, add friend, view profile)
+
+**NotificationCenter Component**
+
+- Centralized notification list with categorization
+- Mark as read/unread functionality
+- Navigation to related content
+
 #### WebSocket Client
 
 **Connection Management**
@@ -251,6 +419,41 @@ class WebSocketClient {
   sendMessage(message: WSMessage): void;
   onMessage(callback: (message: WSMessage) => void): void;
   private handleReconnect(): void;
+}
+```
+
+**Real-time Notification Handling**
+
+```typescript
+interface WSNotificationMessage {
+  type: "notification" | "friend_request";
+  payload: NotificationPayload | FriendRequestPayload;
+}
+
+class NotificationWebSocketHandler {
+  constructor(
+    private notificationStore: NotificationStore,
+    private friendStore: FriendStore
+  ) {}
+
+  handleMessage(message: WSNotificationMessage): void {
+    switch (message.type) {
+      case "notification":
+        this.notificationStore.addNotification(
+          message.payload as NotificationPayload
+        );
+        break;
+      case "friend_request":
+        this.handleFriendRequest(message.payload as FriendRequestPayload);
+        break;
+    }
+  }
+
+  private handleFriendRequest(payload: FriendRequestPayload): void {
+    // Update friend store with new request
+    // Show real-time notification
+    // Update UI badges and counters
+  }
 }
 ```
 
@@ -324,6 +527,26 @@ interface UserPresence {
   status: "online" | "offline" | "in_call";
   last_seen_at: string;
 }
+
+interface FriendRequest {
+  id: string;
+  sender: User;
+  receiver: User;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+  updated_at: string;
+}
+
+interface Notification {
+  id: string;
+  user_id: string;
+  type: "message" | "friend_request" | "call" | "system";
+  title: string;
+  content: string;
+  related_id?: string;
+  is_read: boolean;
+  created_at: string;
+}
 ```
 
 ## Error Handling
@@ -388,12 +611,31 @@ Based on the modular UI refactoring, the components are organized as follows:
 - `ConversationListHeader` - List header with controls
 - `UserSearchModal` - User search and selection interface
 
+**Friend Management Components**
+
+- `FriendList` - Display friends with online status and management options
+- `FriendRequestList` - Manage sent and received friend requests
+- `AddFriendModal` - Interface for sending friend requests
+
+**Search Components**
+
+- `GlobalSearchBar` - Prominent search interface with suggestions
+- `SearchResults` - Display user search results with actions
+- `SearchSuggestions` - Real-time search suggestions dropdown
+
+**Notification Components**
+
+- `NotificationList` - Centralized notification display
+- `NotificationItem` - Individual notification rendering
+- `NotificationBadge` - Unread count indicators
+
 **Shared Components**
 
 - `UserAvatar` - Consistent user avatar display
 - `MessagePreview` - Message preview formatting
 - `EmptyState` - Empty state handling
 - `LoadingSpinner` - Loading state indicators
+- `MessageSkeleton` - Loading skeleton for messages
 
 ## Security Considerations
 

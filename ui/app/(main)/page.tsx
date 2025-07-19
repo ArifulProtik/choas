@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { ConversationList } from "@/components/messaging/conversation-list";
 import { ChatWindow } from "@/components/messaging/chat-window";
 import { useMessagingStore } from "@/components/store/messaging-store";
+import { useSearchStore } from "@/components/store/search-store";
 import { useAuthStore } from "@/components/store/auth-store";
 import {
   mockConversations,
@@ -14,6 +15,7 @@ import {
   mockUserPresence,
   mockNotifications,
   mockNotificationPreferences,
+  mockBlockedUsers,
 } from "@/lib/mock/messaging-data";
 
 function MessagingApp() {
@@ -28,7 +30,11 @@ function MessagingApp() {
     setMultipleUserPresence,
     setNotifications,
     setNotificationPreferences,
+    setBlockedUsers,
+    startConversation,
   } = useMessagingStore();
+
+  const { addToRecentSearches } = useSearchStore();
 
   useEffect(() => {
     if (user) {
@@ -41,6 +47,7 @@ function MessagingApp() {
       setFriendRequests(mockFriendRequests);
       setNotifications(mockNotifications);
       setNotificationPreferences(mockNotificationPreferences);
+      setBlockedUsers(mockBlockedUsers);
 
       // Set user presence
       const presenceMap = mockUserPresence.reduce((acc, presence) => {
@@ -63,6 +70,11 @@ function MessagingApp() {
     }
   }, [user]);
 
+  const handleUserSelect = (user: any) => {
+    addToRecentSearches(user);
+    startConversation(user.id);
+  };
+
   return (
     <div className="flex w-full h-full bg-background overflow-hidden">
       {/* Conversation List Sidebar */}
@@ -71,8 +83,10 @@ function MessagingApp() {
       </div>
 
       {/* Chat Window Container */}
-      <div className="flex-1 h-full">
-        <ChatWindow />
+      <div className="flex-1 h-full flex">
+        <div className="flex-1">
+          <ChatWindow />
+        </div>
       </div>
     </div>
   );

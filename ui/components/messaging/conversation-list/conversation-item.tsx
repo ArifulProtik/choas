@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { Archive } from "lucide-react";
 import { useMessagingStore } from "@/components/store/messaging-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import {
   getStatusText,
 } from "@/lib/utils/messaging-utils";
 import { Conversation } from "@/lib/schemas/messaging";
+import { ConversationActions } from "./conversation-actions";
 import { cn } from "@/lib/utils";
 
 export interface ConversationItemProps {
@@ -27,6 +29,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   currentUserId,
   onSelect,
 }) => {
+  const [showActions, setShowActions] = useState(false);
   const otherUser = getOtherParticipant(conversation, currentUserId);
   const { getUserPresence, isUserOnline, typingUsers } = useMessagingStore();
 
@@ -88,9 +91,11 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-accent/50 border-b border-border/50",
+        "flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-accent/50 border-b border-border/50 group",
         isActive && "bg-accent"
       )}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
       onClick={() => onSelect(conversation.id)}
     >
       <div className="relative">
@@ -112,24 +117,37 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <h3
-            className={cn(
-              "font-medium truncate",
-              conversation.unread_count > 0
-                ? "text-foreground"
-                : "text-foreground/90"
+          <div className="flex items-center gap-2">
+            <h3
+              className={cn(
+                "font-medium truncate",
+                conversation.unread_count > 0
+                  ? "text-foreground"
+                  : "text-foreground/90"
+              )}
+            >
+              {otherUser.name}
+            </h3>
+            {conversation.is_archived && (
+              <Archive className="h-3 w-3 text-muted-foreground flex-shrink-0" />
             )}
-          >
-            {otherUser.name}
-          </h3>
+          </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {conversation.last_message && (
+            {showActions && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <ConversationActions
+                  conversation={conversation}
+                  currentUserId={currentUserId}
+                />
+              </div>
+            )}
+            {!showActions && conversation.last_message && (
               <span className="text-xs text-muted-foreground">
                 {formatMessageTime(conversation.last_message_at)}
               </span>
             )}
-            {conversation.unread_count > 0 && (
+            {!showActions && conversation.unread_count > 0 && (
               <Badge variant="default" className="h-5 min-w-5 px-1.5 text-xs">
                 {conversation.unread_count > 99
                   ? "99+"

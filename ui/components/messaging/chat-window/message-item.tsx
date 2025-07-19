@@ -3,7 +3,7 @@
 import React from "react";
 import { Phone, Check, CheckCheck, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { UserAvatar } from "@/components/messaging/shared/user-avatar";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import { MessageStatus } from "@/lib/schemas/messaging";
 import { formatMessageTime } from "@/lib/utils/messaging-utils";
 import { cn } from "@/lib/utils";

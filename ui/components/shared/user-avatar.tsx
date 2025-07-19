@@ -49,7 +49,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     statusSizeClasses[size],
     showStatus && userPresence
       ? getStatusColor(userPresence.status)
-      : "bg-gray-400"
+      : "bg-muted-foreground"
   );
 
   return (
