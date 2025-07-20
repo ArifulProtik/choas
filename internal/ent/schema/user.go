@@ -37,5 +37,16 @@ func (User) Edges() []ent.Edge {
 		edge.To("owned_guilds", Guild.Type),
 		edge.From("invitations", Invitation.Type).Ref("invited_by"),
 		edge.To("member_of", Member.Type),
+		// Friend relationships
+		edge.From("friend_requests_sent", Friend.Type).Ref("requester"),
+		edge.From("friend_requests_received", Friend.Type).Ref("addressee"),
+		// Messaging relationships
+		edge.From("sent_messages", Message.Type).Ref("sender"),
+		edge.From("notifications", Notification.Type).Ref("user"),
+		edge.From("related_notifications", Notification.Type).Ref("related_user"),
+		edge.From("conversation_participations", ConversationParticipant.Type).Ref("user"),
+		// Block relationships
+		edge.From("blocked_users", Block.Type).Ref("blocker"),
+		edge.From("blocked_by_users", Block.Type).Ref("blocked"),
 	}
 }

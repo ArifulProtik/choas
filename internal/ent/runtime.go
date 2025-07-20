@@ -3,9 +3,15 @@
 package ent
 
 import (
+	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/conversation"
+	"kakashi/chaos/internal/ent/conversationparticipant"
+	"kakashi/chaos/internal/ent/friend"
 	"kakashi/chaos/internal/ent/guild"
 	"kakashi/chaos/internal/ent/invitation"
 	"kakashi/chaos/internal/ent/member"
+	"kakashi/chaos/internal/ent/message"
+	"kakashi/chaos/internal/ent/notification"
 	"kakashi/chaos/internal/ent/schema"
 	"kakashi/chaos/internal/ent/session"
 	"kakashi/chaos/internal/ent/user"
@@ -16,6 +22,122 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	blockMixin := schema.Block{}.Mixin()
+	blockMixinFields0 := blockMixin[0].Fields()
+	_ = blockMixinFields0
+	blockFields := schema.Block{}.Fields()
+	_ = blockFields
+	// blockDescCreatedAt is the schema descriptor for created_at field.
+	blockDescCreatedAt := blockMixinFields0[1].Descriptor()
+	// block.DefaultCreatedAt holds the default value on creation for the created_at field.
+	block.DefaultCreatedAt = blockDescCreatedAt.Default.(func() time.Time)
+	// blockDescUpdatedAt is the schema descriptor for updated_at field.
+	blockDescUpdatedAt := blockMixinFields0[2].Descriptor()
+	// block.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	block.DefaultUpdatedAt = blockDescUpdatedAt.Default.(func() time.Time)
+	// block.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	block.UpdateDefaultUpdatedAt = blockDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// blockDescBlockerID is the schema descriptor for blocker_id field.
+	blockDescBlockerID := blockFields[0].Descriptor()
+	// block.BlockerIDValidator is a validator for the "blocker_id" field. It is called by the builders before save.
+	block.BlockerIDValidator = blockDescBlockerID.Validators[0].(func(string) error)
+	// blockDescBlockedID is the schema descriptor for blocked_id field.
+	blockDescBlockedID := blockFields[1].Descriptor()
+	// block.BlockedIDValidator is a validator for the "blocked_id" field. It is called by the builders before save.
+	block.BlockedIDValidator = blockDescBlockedID.Validators[0].(func(string) error)
+	// blockDescID is the schema descriptor for id field.
+	blockDescID := blockMixinFields0[0].Descriptor()
+	// block.DefaultID holds the default value on creation for the id field.
+	block.DefaultID = blockDescID.Default.(func() string)
+	conversationMixin := schema.Conversation{}.Mixin()
+	conversationMixinFields0 := conversationMixin[0].Fields()
+	_ = conversationMixinFields0
+	conversationFields := schema.Conversation{}.Fields()
+	_ = conversationFields
+	// conversationDescCreatedAt is the schema descriptor for created_at field.
+	conversationDescCreatedAt := conversationMixinFields0[1].Descriptor()
+	// conversation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	conversation.DefaultCreatedAt = conversationDescCreatedAt.Default.(func() time.Time)
+	// conversationDescUpdatedAt is the schema descriptor for updated_at field.
+	conversationDescUpdatedAt := conversationMixinFields0[2].Descriptor()
+	// conversation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	conversation.DefaultUpdatedAt = conversationDescUpdatedAt.Default.(func() time.Time)
+	// conversation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	conversation.UpdateDefaultUpdatedAt = conversationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// conversationDescName is the schema descriptor for name field.
+	conversationDescName := conversationFields[1].Descriptor()
+	// conversation.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	conversation.NameValidator = conversationDescName.Validators[0].(func(string) error)
+	// conversationDescIsArchived is the schema descriptor for is_archived field.
+	conversationDescIsArchived := conversationFields[3].Descriptor()
+	// conversation.DefaultIsArchived holds the default value on creation for the is_archived field.
+	conversation.DefaultIsArchived = conversationDescIsArchived.Default.(bool)
+	// conversationDescIsMuted is the schema descriptor for is_muted field.
+	conversationDescIsMuted := conversationFields[4].Descriptor()
+	// conversation.DefaultIsMuted holds the default value on creation for the is_muted field.
+	conversation.DefaultIsMuted = conversationDescIsMuted.Default.(bool)
+	// conversationDescID is the schema descriptor for id field.
+	conversationDescID := conversationMixinFields0[0].Descriptor()
+	// conversation.DefaultID holds the default value on creation for the id field.
+	conversation.DefaultID = conversationDescID.Default.(func() string)
+	conversationparticipantMixin := schema.ConversationParticipant{}.Mixin()
+	conversationparticipantMixinFields0 := conversationparticipantMixin[0].Fields()
+	_ = conversationparticipantMixinFields0
+	conversationparticipantFields := schema.ConversationParticipant{}.Fields()
+	_ = conversationparticipantFields
+	// conversationparticipantDescCreatedAt is the schema descriptor for created_at field.
+	conversationparticipantDescCreatedAt := conversationparticipantMixinFields0[1].Descriptor()
+	// conversationparticipant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	conversationparticipant.DefaultCreatedAt = conversationparticipantDescCreatedAt.Default.(func() time.Time)
+	// conversationparticipantDescUpdatedAt is the schema descriptor for updated_at field.
+	conversationparticipantDescUpdatedAt := conversationparticipantMixinFields0[2].Descriptor()
+	// conversationparticipant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	conversationparticipant.DefaultUpdatedAt = conversationparticipantDescUpdatedAt.Default.(func() time.Time)
+	// conversationparticipant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	conversationparticipant.UpdateDefaultUpdatedAt = conversationparticipantDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// conversationparticipantDescConversationID is the schema descriptor for conversation_id field.
+	conversationparticipantDescConversationID := conversationparticipantFields[0].Descriptor()
+	// conversationparticipant.ConversationIDValidator is a validator for the "conversation_id" field. It is called by the builders before save.
+	conversationparticipant.ConversationIDValidator = conversationparticipantDescConversationID.Validators[0].(func(string) error)
+	// conversationparticipantDescUserID is the schema descriptor for user_id field.
+	conversationparticipantDescUserID := conversationparticipantFields[1].Descriptor()
+	// conversationparticipant.UserIDValidator is a validator for the "user_id" field. It is called by the builders before save.
+	conversationparticipant.UserIDValidator = conversationparticipantDescUserID.Validators[0].(func(string) error)
+	// conversationparticipantDescJoinedAt is the schema descriptor for joined_at field.
+	conversationparticipantDescJoinedAt := conversationparticipantFields[2].Descriptor()
+	// conversationparticipant.DefaultJoinedAt holds the default value on creation for the joined_at field.
+	conversationparticipant.DefaultJoinedAt = conversationparticipantDescJoinedAt.Default.(func() time.Time)
+	// conversationparticipantDescID is the schema descriptor for id field.
+	conversationparticipantDescID := conversationparticipantMixinFields0[0].Descriptor()
+	// conversationparticipant.DefaultID holds the default value on creation for the id field.
+	conversationparticipant.DefaultID = conversationparticipantDescID.Default.(func() string)
+	friendMixin := schema.Friend{}.Mixin()
+	friendMixinFields0 := friendMixin[0].Fields()
+	_ = friendMixinFields0
+	friendFields := schema.Friend{}.Fields()
+	_ = friendFields
+	// friendDescCreatedAt is the schema descriptor for created_at field.
+	friendDescCreatedAt := friendMixinFields0[1].Descriptor()
+	// friend.DefaultCreatedAt holds the default value on creation for the created_at field.
+	friend.DefaultCreatedAt = friendDescCreatedAt.Default.(func() time.Time)
+	// friendDescUpdatedAt is the schema descriptor for updated_at field.
+	friendDescUpdatedAt := friendMixinFields0[2].Descriptor()
+	// friend.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	friend.DefaultUpdatedAt = friendDescUpdatedAt.Default.(func() time.Time)
+	// friend.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	friend.UpdateDefaultUpdatedAt = friendDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// friendDescRequesterID is the schema descriptor for requester_id field.
+	friendDescRequesterID := friendFields[0].Descriptor()
+	// friend.RequesterIDValidator is a validator for the "requester_id" field. It is called by the builders before save.
+	friend.RequesterIDValidator = friendDescRequesterID.Validators[0].(func(string) error)
+	// friendDescAddresseeID is the schema descriptor for addressee_id field.
+	friendDescAddresseeID := friendFields[1].Descriptor()
+	// friend.AddresseeIDValidator is a validator for the "addressee_id" field. It is called by the builders before save.
+	friend.AddresseeIDValidator = friendDescAddresseeID.Validators[0].(func(string) error)
+	// friendDescID is the schema descriptor for id field.
+	friendDescID := friendMixinFields0[0].Descriptor()
+	// friend.DefaultID holds the default value on creation for the id field.
+	friend.DefaultID = friendDescID.Default.(func() string)
 	guildMixin := schema.Guild{}.Mixin()
 	guildMixinFields0 := guildMixin[0].Fields()
 	_ = guildMixinFields0
@@ -101,6 +223,90 @@ func init() {
 	memberDescID := memberMixinFields0[0].Descriptor()
 	// member.DefaultID holds the default value on creation for the id field.
 	member.DefaultID = memberDescID.Default.(func() string)
+	messageMixin := schema.Message{}.Mixin()
+	messageMixinFields0 := messageMixin[0].Fields()
+	_ = messageMixinFields0
+	messageFields := schema.Message{}.Fields()
+	_ = messageFields
+	// messageDescCreatedAt is the schema descriptor for created_at field.
+	messageDescCreatedAt := messageMixinFields0[1].Descriptor()
+	// message.DefaultCreatedAt holds the default value on creation for the created_at field.
+	message.DefaultCreatedAt = messageDescCreatedAt.Default.(func() time.Time)
+	// messageDescUpdatedAt is the schema descriptor for updated_at field.
+	messageDescUpdatedAt := messageMixinFields0[2].Descriptor()
+	// message.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	message.DefaultUpdatedAt = messageDescUpdatedAt.Default.(func() time.Time)
+	// message.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	message.UpdateDefaultUpdatedAt = messageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// messageDescConversationID is the schema descriptor for conversation_id field.
+	messageDescConversationID := messageFields[0].Descriptor()
+	// message.ConversationIDValidator is a validator for the "conversation_id" field. It is called by the builders before save.
+	message.ConversationIDValidator = messageDescConversationID.Validators[0].(func(string) error)
+	// messageDescSenderID is the schema descriptor for sender_id field.
+	messageDescSenderID := messageFields[1].Descriptor()
+	// message.SenderIDValidator is a validator for the "sender_id" field. It is called by the builders before save.
+	message.SenderIDValidator = messageDescSenderID.Validators[0].(func(string) error)
+	// messageDescContent is the schema descriptor for content field.
+	messageDescContent := messageFields[2].Descriptor()
+	// message.ContentValidator is a validator for the "content" field. It is called by the builders before save.
+	message.ContentValidator = messageDescContent.Validators[0].(func(string) error)
+	// messageDescIsDeleted is the schema descriptor for is_deleted field.
+	messageDescIsDeleted := messageFields[4].Descriptor()
+	// message.DefaultIsDeleted holds the default value on creation for the is_deleted field.
+	message.DefaultIsDeleted = messageDescIsDeleted.Default.(bool)
+	// messageDescID is the schema descriptor for id field.
+	messageDescID := messageMixinFields0[0].Descriptor()
+	// message.DefaultID holds the default value on creation for the id field.
+	message.DefaultID = messageDescID.Default.(func() string)
+	notificationMixin := schema.Notification{}.Mixin()
+	notificationMixinFields0 := notificationMixin[0].Fields()
+	_ = notificationMixinFields0
+	notificationFields := schema.Notification{}.Fields()
+	_ = notificationFields
+	// notificationDescCreatedAt is the schema descriptor for created_at field.
+	notificationDescCreatedAt := notificationMixinFields0[1].Descriptor()
+	// notification.DefaultCreatedAt holds the default value on creation for the created_at field.
+	notification.DefaultCreatedAt = notificationDescCreatedAt.Default.(func() time.Time)
+	// notificationDescUpdatedAt is the schema descriptor for updated_at field.
+	notificationDescUpdatedAt := notificationMixinFields0[2].Descriptor()
+	// notification.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	notification.DefaultUpdatedAt = notificationDescUpdatedAt.Default.(func() time.Time)
+	// notification.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	notification.UpdateDefaultUpdatedAt = notificationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationDescUserID is the schema descriptor for user_id field.
+	notificationDescUserID := notificationFields[0].Descriptor()
+	// notification.UserIDValidator is a validator for the "user_id" field. It is called by the builders before save.
+	notification.UserIDValidator = notificationDescUserID.Validators[0].(func(string) error)
+	// notificationDescTitle is the schema descriptor for title field.
+	notificationDescTitle := notificationFields[2].Descriptor()
+	// notification.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	notification.TitleValidator = func() func(string) error {
+		validators := notificationDescTitle.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(title string) error {
+			for _, fn := range fns {
+				if err := fn(title); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// notificationDescContent is the schema descriptor for content field.
+	notificationDescContent := notificationFields[3].Descriptor()
+	// notification.ContentValidator is a validator for the "content" field. It is called by the builders before save.
+	notification.ContentValidator = notificationDescContent.Validators[0].(func(string) error)
+	// notificationDescIsRead is the schema descriptor for is_read field.
+	notificationDescIsRead := notificationFields[4].Descriptor()
+	// notification.DefaultIsRead holds the default value on creation for the is_read field.
+	notification.DefaultIsRead = notificationDescIsRead.Default.(bool)
+	// notificationDescID is the schema descriptor for id field.
+	notificationDescID := notificationMixinFields0[0].Descriptor()
+	// notification.DefaultID holds the default value on creation for the id field.
+	notification.DefaultID = notificationDescID.Default.(func() string)
 	sessionMixin := schema.Session{}.Mixin()
 	sessionMixinFields0 := sessionMixin[0].Fields()
 	_ = sessionMixinFields0

@@ -195,7 +195,7 @@ export const ChatWindow: React.FC = () => {
     <>
       <div className="flex h-full bg-background overflow-hidden">
         {/* Main Chat Area */}
-        <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex flex-col flex-1 min-w-0 h-full">
           {/* Chat Header */}
           <div className="border-b border-border flex-shrink-0">
             <ChatHeader
@@ -223,7 +223,7 @@ export const ChatWindow: React.FC = () => {
           )}
 
           {/* Messages Area */}
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <MessageList
               messages={messages}
               currentUserId={currentUser.id}
@@ -243,9 +243,9 @@ export const ChatWindow: React.FC = () => {
           </div>
 
           {/* Chat Input */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 border-t border-border">
             {!canSend.canSend ? (
-              <div className="p-4 border-t border-border bg-muted/30">
+              <div className="p-4 bg-muted/30">
                 <div className="flex items-center justify-center py-3">
                   <p className="text-sm text-muted-foreground">
                     {canSend.reason || "You cannot send messages to this user"}

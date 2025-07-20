@@ -1,24 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
-
-import { ConversationList } from "@/components/messaging/conversation-list";
-import { ChatWindow } from "@/components/messaging/chat-window";
+import { FriendList } from "@/components/friends/friend-list";
+import { SearchBar } from "@/components/search";
+import { useAuthStore } from "@/components/store/auth-store";
 import { useMessagingStore } from "@/components/store/messaging-store";
 import { useSearchStore } from "@/components/store/search-store";
-import { useAuthStore } from "@/components/store/auth-store";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  mockConversations,
-  mockMessages,
-  mockFriendships,
-  mockFriendRequests,
-  mockUserPresence,
-  mockNotifications,
-  mockNotificationPreferences,
   mockBlockedUsers,
+  mockConversations,
+  mockFriendRequests,
+  mockFriendships,
+  mockMessages,
+  mockNotificationPreferences,
+  mockNotifications,
+  mockUserPresence,
 } from "@/lib/mock/messaging-data";
+import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-function MessagingApp() {
+function HomePage() {
   const { user } = useAuthStore();
   const {
     initialize,
@@ -35,6 +39,7 @@ function MessagingApp() {
   } = useMessagingStore();
 
   const { addToRecentSearches } = useSearchStore();
+  const router = useRouter();
 
   useEffect(() => {
     if (user) {
@@ -75,23 +80,101 @@ function MessagingApp() {
     startConversation(user.id);
   };
 
+  const handleStartConversation = async (userId: string) => {
+    const conversationId = await startConversation(userId);
+    if (conversationId) {
+      router.push(`/conversation/${conversationId}`);
+    }
+  };
+
+  const handleStartCall = (userId: string) => {
+    // TODO: Implement call functionality
+    console.log("Starting call with user:", userId);
+  };
+
   return (
-    <div className="flex w-full h-full bg-background overflow-hidden">
-      {/* Conversation List Sidebar */}
-      <div className="w-80 flex-shrink-0 border-r border-border h-full">
-        <ConversationList />
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="border-b border-border p-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Friends</h1>
+          <Button size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Friend
+          </Button>
+        </div>
       </div>
 
-      {/* Chat Window Container */}
-      <div className="flex-1 h-full flex">
-        <div className="flex-1">
-          <ChatWindow />
-        </div>
+      {/* Navigation Tabs */}
+      <div className="border-b border-border px-4">
+        <Tabs defaultValue="friends" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="friends">Friends</TabsTrigger>
+            <TabsTrigger value="online">Online</TabsTrigger>
+            <TabsTrigger value="all">All</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="friends" className="mt-0">
+            <div className="p-4">
+              <div className="mb-4">
+                <SearchBar
+                  placeholder="Search"
+                  onUserSelect={handleUserSelect}
+                  className="w-full"
+                />
+              </div>
+              <ScrollArea className="h-[calc(100vh-280px)]">
+                <FriendList
+                  onStartConversation={handleStartConversation}
+                  onStartCall={handleStartCall}
+                />
+              </ScrollArea>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="online" className="mt-0">
+            <div className="p-4">
+              <div className="mb-4">
+                <SearchBar
+                  placeholder="Search"
+                  onUserSelect={handleUserSelect}
+                  className="w-full"
+                />
+              </div>
+              <ScrollArea className="h-[calc(100vh-280px)]">
+                <FriendList
+                  onStartConversation={handleStartConversation}
+                  onStartCall={handleStartCall}
+                  filterOnline={true}
+                />
+              </ScrollArea>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="all" className="mt-0">
+            <div className="p-4">
+              <div className="mb-4">
+                <SearchBar
+                  placeholder="Search"
+                  onUserSelect={handleUserSelect}
+                  className="w-full"
+                />
+              </div>
+              <ScrollArea className="h-[calc(100vh-280px)]">
+                <FriendList
+                  onStartConversation={handleStartConversation}
+                  onStartCall={handleStartCall}
+                  showAll={true}
+                />
+              </ScrollArea>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
 }
 
 export default function Home() {
-  return <MessagingApp />;
+  return <HomePage />;
 }

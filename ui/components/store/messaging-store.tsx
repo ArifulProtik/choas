@@ -194,7 +194,7 @@ interface MessagingState
   getSentFriendRequests: () => FriendRequest[];
 
   // Search integration
-  startConversation: (userId: string) => Promise<void>;
+  startConversation: (userId: string) => Promise<string | null>;
 
   // WebSocket message handler
   handleWebSocketMessage: (message: WSMessage) => void;
@@ -862,7 +862,7 @@ export const useMessagingStore = create<MessagingState>()(
     // Search integration
     startConversation: async (userId) => {
       const state = get();
-      if (!state.currentUserId) return;
+      if (!state.currentUserId) return null;
 
       // Check if conversation already exists
       const existingConversation = state.conversations.find(
@@ -876,7 +876,7 @@ export const useMessagingStore = create<MessagingState>()(
       if (existingConversation) {
         // Set as active conversation
         get().setActiveConversation(existingConversation.id);
-        return;
+        return existingConversation.id;
       }
 
       try {
@@ -908,8 +908,10 @@ export const useMessagingStore = create<MessagingState>()(
 
         get().addConversation(newConversation);
         get().setActiveConversation(newConversation.id);
+        return newConversation.id;
       } catch (error) {
         console.error("Failed to start conversation:", error);
+        return null;
       }
     },
 
@@ -984,7 +986,245 @@ export const useMessagingStore = create<MessagingState>()(
     },
 
     // Initialization
-    initialize: (currentUserId) => set({ currentUserId }),
+    initialize: (currentUserId) => {
+      set({ currentUserId });
+
+      // Load mock data for development
+      const mockConversations: Conversation[] = [
+        {
+          id: "conv_1",
+          participant1: {
+            id: currentUserId,
+            name: "You",
+            username: "you",
+            email: "you@example.com",
+          },
+          participant2: {
+            id: "2",
+            name: "Bob Johnson",
+            username: "bob_johnson",
+            email: "bob@example.com",
+            avatar_url: undefined,
+          },
+          last_message: {
+            id: "msg_1",
+            conversation_id: "conv_1",
+            sender: {
+              id: "2",
+              name: "Bob Johnson",
+              username: "bob_johnson",
+              email: "bob@example.com",
+            },
+            content: "I'm doing well! Are you free for a quick call later?",
+            message_type: "text",
+            status: "delivered",
+            created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          },
+          last_message_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          unread_count: 1,
+          is_archived: false,
+          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+        },
+        {
+          id: "conv_2",
+          participant1: {
+            id: currentUserId,
+            name: "You",
+            username: "you",
+            email: "you@example.com",
+          },
+          participant2: {
+            id: "3",
+            name: "Alice Smith",
+            username: "alice_smith",
+            email: "alice@example.com",
+            avatar_url: undefined,
+          },
+          last_message: {
+            id: "msg_2",
+            conversation_id: "conv_2",
+            sender: {
+              id: currentUserId,
+              name: "You",
+              username: "you",
+              email: "you@example.com",
+            },
+            content: "Thanks for the help with the project!",
+            message_type: "text",
+            status: "read",
+            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          },
+          last_message_at: new Date(
+            Date.now() - 2 * 60 * 60 * 1000
+          ).toISOString(),
+          unread_count: 0,
+          is_archived: false,
+          created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: "conv_3",
+          participant1: {
+            id: currentUserId,
+            name: "You",
+            username: "you",
+            email: "you@example.com",
+          },
+          participant2: {
+            id: "4",
+            name: "Diana Prince",
+            username: "diana_prince",
+            email: "diana@example.com",
+            avatar_url: undefined,
+          },
+          last_message: {
+            id: "msg_3",
+            conversation_id: "conv_3",
+            sender: {
+              id: "4",
+              name: "Diana Prince",
+              username: "diana_prince",
+              email: "diana@example.com",
+            },
+            content: "Let's catch up soon!",
+            message_type: "text",
+            status: "delivered",
+            created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+          },
+          last_message_at: new Date(
+            Date.now() - 6 * 60 * 60 * 1000
+          ).toISOString(),
+          unread_count: 2,
+          is_archived: false,
+          created_at: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+
+      // Load mock messages for conversations
+      const mockMessages: Record<string, Message[]> = {
+        conv_1: [
+          {
+            id: "msg_1_1",
+            conversation_id: "conv_1",
+            sender: {
+              id: currentUserId,
+              name: "You",
+              username: "you",
+              email: "you@example.com",
+            },
+            content: "Hey Bob! How are you doing?",
+            message_type: "text",
+            status: "read",
+            created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          },
+          {
+            id: "msg_1_2",
+            conversation_id: "conv_1",
+            sender: {
+              id: "2",
+              name: "Bob Johnson",
+              username: "bob_johnson",
+              email: "bob@example.com",
+            },
+            content: "I'm doing well! Are you free for a quick call later?",
+            message_type: "text",
+            status: "delivered",
+            created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          },
+        ],
+        conv_2: [
+          {
+            id: "msg_2_1",
+            conversation_id: "conv_2",
+            sender: {
+              id: "3",
+              name: "Alice Smith",
+              username: "alice_smith",
+              email: "alice@example.com",
+            },
+            content: "The project looks great! Nice work on the UI.",
+            message_type: "text",
+            status: "read",
+            created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            id: "msg_2_2",
+            conversation_id: "conv_2",
+            sender: {
+              id: currentUserId,
+              name: "You",
+              username: "you",
+              email: "you@example.com",
+            },
+            content: "Thanks for the help with the project!",
+            message_type: "text",
+            status: "read",
+            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          },
+        ],
+        conv_3: [
+          {
+            id: "msg_3_1",
+            conversation_id: "conv_3",
+            sender: {
+              id: "4",
+              name: "Diana Prince",
+              username: "diana_prince",
+              email: "diana@example.com",
+            },
+            content: "Hey! It's been a while.",
+            message_type: "text",
+            status: "delivered",
+            created_at: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            id: "msg_3_2",
+            conversation_id: "conv_3",
+            sender: {
+              id: "4",
+              name: "Diana Prince",
+              username: "diana_prince",
+              email: "diana@example.com",
+            },
+            content: "Let's catch up soon!",
+            message_type: "text",
+            status: "delivered",
+            created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+          },
+        ],
+      };
+
+      // Load mock user presence
+      const mockPresence: Record<string, UserPresence> = {
+        "2": {
+          user_id: "2",
+          status: "online",
+          last_seen_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        "3": {
+          user_id: "3",
+          status: "offline",
+          last_seen_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        },
+        "4": {
+          user_id: "4",
+          status: "online",
+          last_seen_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      };
+
+      // Set the mock data
+      get().setConversations(mockConversations);
+      Object.entries(mockMessages).forEach(([conversationId, messages]) => {
+        get().setMessages(conversationId, messages);
+      });
+      get().setMultipleUserPresence(mockPresence);
+    },
 
     reset: () => set(initialState),
   }))

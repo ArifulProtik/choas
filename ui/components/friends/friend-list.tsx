@@ -25,11 +25,15 @@ import {
 interface FriendListProps {
   onStartConversation?: (userId: string) => void;
   onStartCall?: (userId: string) => void;
+  filterOnline?: boolean;
+  showAll?: boolean;
 }
 
 export function FriendList({
   onStartConversation,
   onStartCall,
+  filterOnline = false,
+  showAll = false,
 }: FriendListProps) {
   const [removingFriend, setRemovingFriend] = useState<User | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -42,7 +46,16 @@ export function FriendList({
     currentUserId,
   } = useMessagingStore();
 
-  const friends = getFriendsList();
+  const allFriends = getFriendsList();
+
+  // Filter friends based on props
+  const friends = allFriends.filter((friend) => {
+    if (filterOnline) {
+      const presence = getUserPresence(friend.id);
+      return presence?.status === "online";
+    }
+    return true;
+  });
 
   const handleRemoveFriend = async (friend: User) => {
     if (!currentUserId) return;

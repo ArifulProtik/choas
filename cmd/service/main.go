@@ -81,4 +81,12 @@ func AttachRoutes(router *echo.Group, controller *controller.Controller) {
 	router.Use(controller.IsAuthenticated)
 	router.GET("/auth/me", controller.Me)
 	router.POST("/guild", controller.CreateGuild)
+
+	// Friend management routes
+	router.POST("/friends/request", controller.SendFriendRequest)
+	router.POST("/friends/accept", controller.AcceptFriendRequest)
+	router.POST("/friends/decline", controller.DeclineFriendRequest)
+	router.DELETE("/friends/:friendID", controller.RemoveFriend)
+	router.GET("/friends", controller.GetFriends)
+	router.GET("/friends/requests", controller.GetPendingRequests)
 }

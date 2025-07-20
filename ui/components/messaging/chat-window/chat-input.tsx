@@ -81,10 +81,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, []);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex items-end gap-2 p-4 border-t border-border"
-    >
+    <form onSubmit={handleSubmit} className="flex items-end gap-2 p-4">
       <div className="flex-1 relative">
         <Input
           ref={inputRef}

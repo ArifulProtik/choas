@@ -6,9 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/conversationparticipant"
+	"kakashi/chaos/internal/ent/friend"
 	"kakashi/chaos/internal/ent/guild"
 	"kakashi/chaos/internal/ent/invitation"
 	"kakashi/chaos/internal/ent/member"
+	"kakashi/chaos/internal/ent/message"
+	"kakashi/chaos/internal/ent/notification"
 	"kakashi/chaos/internal/ent/session"
 	"kakashi/chaos/internal/ent/user"
 	"time"
@@ -198,6 +203,126 @@ func (uc *UserCreate) AddMemberOf(m ...*Member) *UserCreate {
 		ids[i] = m[i].ID
 	}
 	return uc.AddMemberOfIDs(ids...)
+}
+
+// AddFriendRequestsSentIDs adds the "friend_requests_sent" edge to the Friend entity by IDs.
+func (uc *UserCreate) AddFriendRequestsSentIDs(ids ...string) *UserCreate {
+	uc.mutation.AddFriendRequestsSentIDs(ids...)
+	return uc
+}
+
+// AddFriendRequestsSent adds the "friend_requests_sent" edges to the Friend entity.
+func (uc *UserCreate) AddFriendRequestsSent(f ...*Friend) *UserCreate {
+	ids := make([]string, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uc.AddFriendRequestsSentIDs(ids...)
+}
+
+// AddFriendRequestsReceivedIDs adds the "friend_requests_received" edge to the Friend entity by IDs.
+func (uc *UserCreate) AddFriendRequestsReceivedIDs(ids ...string) *UserCreate {
+	uc.mutation.AddFriendRequestsReceivedIDs(ids...)
+	return uc
+}
+
+// AddFriendRequestsReceived adds the "friend_requests_received" edges to the Friend entity.
+func (uc *UserCreate) AddFriendRequestsReceived(f ...*Friend) *UserCreate {
+	ids := make([]string, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uc.AddFriendRequestsReceivedIDs(ids...)
+}
+
+// AddSentMessageIDs adds the "sent_messages" edge to the Message entity by IDs.
+func (uc *UserCreate) AddSentMessageIDs(ids ...string) *UserCreate {
+	uc.mutation.AddSentMessageIDs(ids...)
+	return uc
+}
+
+// AddSentMessages adds the "sent_messages" edges to the Message entity.
+func (uc *UserCreate) AddSentMessages(m ...*Message) *UserCreate {
+	ids := make([]string, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return uc.AddSentMessageIDs(ids...)
+}
+
+// AddNotificationIDs adds the "notifications" edge to the Notification entity by IDs.
+func (uc *UserCreate) AddNotificationIDs(ids ...string) *UserCreate {
+	uc.mutation.AddNotificationIDs(ids...)
+	return uc
+}
+
+// AddNotifications adds the "notifications" edges to the Notification entity.
+func (uc *UserCreate) AddNotifications(n ...*Notification) *UserCreate {
+	ids := make([]string, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return uc.AddNotificationIDs(ids...)
+}
+
+// AddRelatedNotificationIDs adds the "related_notifications" edge to the Notification entity by IDs.
+func (uc *UserCreate) AddRelatedNotificationIDs(ids ...string) *UserCreate {
+	uc.mutation.AddRelatedNotificationIDs(ids...)
+	return uc
+}
+
+// AddRelatedNotifications adds the "related_notifications" edges to the Notification entity.
+func (uc *UserCreate) AddRelatedNotifications(n ...*Notification) *UserCreate {
+	ids := make([]string, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return uc.AddRelatedNotificationIDs(ids...)
+}
+
+// AddConversationParticipationIDs adds the "conversation_participations" edge to the ConversationParticipant entity by IDs.
+func (uc *UserCreate) AddConversationParticipationIDs(ids ...string) *UserCreate {
+	uc.mutation.AddConversationParticipationIDs(ids...)
+	return uc
+}
+
+// AddConversationParticipations adds the "conversation_participations" edges to the ConversationParticipant entity.
+func (uc *UserCreate) AddConversationParticipations(c ...*ConversationParticipant) *UserCreate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uc.AddConversationParticipationIDs(ids...)
+}
+
+// AddBlockedUserIDs adds the "blocked_users" edge to the Block entity by IDs.
+func (uc *UserCreate) AddBlockedUserIDs(ids ...string) *UserCreate {
+	uc.mutation.AddBlockedUserIDs(ids...)
+	return uc
+}
+
+// AddBlockedUsers adds the "blocked_users" edges to the Block entity.
+func (uc *UserCreate) AddBlockedUsers(b ...*Block) *UserCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return uc.AddBlockedUserIDs(ids...)
+}
+
+// AddBlockedByUserIDs adds the "blocked_by_users" edge to the Block entity by IDs.
+func (uc *UserCreate) AddBlockedByUserIDs(ids ...string) *UserCreate {
+	uc.mutation.AddBlockedByUserIDs(ids...)
+	return uc
+}
+
+// AddBlockedByUsers adds the "blocked_by_users" edges to the Block entity.
+func (uc *UserCreate) AddBlockedByUsers(b ...*Block) *UserCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return uc.AddBlockedByUserIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -414,6 +539,134 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(member.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.FriendRequestsSentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.FriendRequestsSentTable,
+			Columns: []string{user.FriendRequestsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(friend.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.FriendRequestsReceivedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.FriendRequestsReceivedTable,
+			Columns: []string{user.FriendRequestsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(friend.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.SentMessagesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.SentMessagesTable,
+			Columns: []string{user.SentMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.NotificationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.RelatedNotificationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.RelatedNotificationsTable,
+			Columns: []string{user.RelatedNotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.ConversationParticipationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.ConversationParticipationsTable,
+			Columns: []string{user.ConversationParticipationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(conversationparticipant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.BlockedUsersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.BlockedUsersTable,
+			Columns: []string{user.BlockedUsersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(block.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.BlockedByUsersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.BlockedByUsersTable,
+			Columns: []string{user.BlockedByUsersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(block.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

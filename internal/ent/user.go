@@ -51,9 +51,25 @@ type UserEdges struct {
 	Invitations []*Invitation `json:"invitations,omitempty"`
 	// MemberOf holds the value of the member_of edge.
 	MemberOf []*Member `json:"member_of,omitempty"`
+	// FriendRequestsSent holds the value of the friend_requests_sent edge.
+	FriendRequestsSent []*Friend `json:"friend_requests_sent,omitempty"`
+	// FriendRequestsReceived holds the value of the friend_requests_received edge.
+	FriendRequestsReceived []*Friend `json:"friend_requests_received,omitempty"`
+	// SentMessages holds the value of the sent_messages edge.
+	SentMessages []*Message `json:"sent_messages,omitempty"`
+	// Notifications holds the value of the notifications edge.
+	Notifications []*Notification `json:"notifications,omitempty"`
+	// RelatedNotifications holds the value of the related_notifications edge.
+	RelatedNotifications []*Notification `json:"related_notifications,omitempty"`
+	// ConversationParticipations holds the value of the conversation_participations edge.
+	ConversationParticipations []*ConversationParticipant `json:"conversation_participations,omitempty"`
+	// BlockedUsers holds the value of the blocked_users edge.
+	BlockedUsers []*Block `json:"blocked_users,omitempty"`
+	// BlockedByUsers holds the value of the blocked_by_users edge.
+	BlockedByUsers []*Block `json:"blocked_by_users,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [12]bool
 }
 
 // SessionsOrErr returns the Sessions value or an error if the edge
@@ -90,6 +106,78 @@ func (e UserEdges) MemberOfOrErr() ([]*Member, error) {
 		return e.MemberOf, nil
 	}
 	return nil, &NotLoadedError{edge: "member_of"}
+}
+
+// FriendRequestsSentOrErr returns the FriendRequestsSent value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FriendRequestsSentOrErr() ([]*Friend, error) {
+	if e.loadedTypes[4] {
+		return e.FriendRequestsSent, nil
+	}
+	return nil, &NotLoadedError{edge: "friend_requests_sent"}
+}
+
+// FriendRequestsReceivedOrErr returns the FriendRequestsReceived value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FriendRequestsReceivedOrErr() ([]*Friend, error) {
+	if e.loadedTypes[5] {
+		return e.FriendRequestsReceived, nil
+	}
+	return nil, &NotLoadedError{edge: "friend_requests_received"}
+}
+
+// SentMessagesOrErr returns the SentMessages value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) SentMessagesOrErr() ([]*Message, error) {
+	if e.loadedTypes[6] {
+		return e.SentMessages, nil
+	}
+	return nil, &NotLoadedError{edge: "sent_messages"}
+}
+
+// NotificationsOrErr returns the Notifications value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) NotificationsOrErr() ([]*Notification, error) {
+	if e.loadedTypes[7] {
+		return e.Notifications, nil
+	}
+	return nil, &NotLoadedError{edge: "notifications"}
+}
+
+// RelatedNotificationsOrErr returns the RelatedNotifications value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) RelatedNotificationsOrErr() ([]*Notification, error) {
+	if e.loadedTypes[8] {
+		return e.RelatedNotifications, nil
+	}
+	return nil, &NotLoadedError{edge: "related_notifications"}
+}
+
+// ConversationParticipationsOrErr returns the ConversationParticipations value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ConversationParticipationsOrErr() ([]*ConversationParticipant, error) {
+	if e.loadedTypes[9] {
+		return e.ConversationParticipations, nil
+	}
+	return nil, &NotLoadedError{edge: "conversation_participations"}
+}
+
+// BlockedUsersOrErr returns the BlockedUsers value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) BlockedUsersOrErr() ([]*Block, error) {
+	if e.loadedTypes[10] {
+		return e.BlockedUsers, nil
+	}
+	return nil, &NotLoadedError{edge: "blocked_users"}
+}
+
+// BlockedByUsersOrErr returns the BlockedByUsers value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) BlockedByUsersOrErr() ([]*Block, error) {
+	if e.loadedTypes[11] {
+		return e.BlockedByUsers, nil
+	}
+	return nil, &NotLoadedError{edge: "blocked_by_users"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -207,6 +295,46 @@ func (u *User) QueryInvitations() *InvitationQuery {
 // QueryMemberOf queries the "member_of" edge of the User entity.
 func (u *User) QueryMemberOf() *MemberQuery {
 	return NewUserClient(u.config).QueryMemberOf(u)
+}
+
+// QueryFriendRequestsSent queries the "friend_requests_sent" edge of the User entity.
+func (u *User) QueryFriendRequestsSent() *FriendQuery {
+	return NewUserClient(u.config).QueryFriendRequestsSent(u)
+}
+
+// QueryFriendRequestsReceived queries the "friend_requests_received" edge of the User entity.
+func (u *User) QueryFriendRequestsReceived() *FriendQuery {
+	return NewUserClient(u.config).QueryFriendRequestsReceived(u)
+}
+
+// QuerySentMessages queries the "sent_messages" edge of the User entity.
+func (u *User) QuerySentMessages() *MessageQuery {
+	return NewUserClient(u.config).QuerySentMessages(u)
+}
+
+// QueryNotifications queries the "notifications" edge of the User entity.
+func (u *User) QueryNotifications() *NotificationQuery {
+	return NewUserClient(u.config).QueryNotifications(u)
+}
+
+// QueryRelatedNotifications queries the "related_notifications" edge of the User entity.
+func (u *User) QueryRelatedNotifications() *NotificationQuery {
+	return NewUserClient(u.config).QueryRelatedNotifications(u)
+}
+
+// QueryConversationParticipations queries the "conversation_participations" edge of the User entity.
+func (u *User) QueryConversationParticipations() *ConversationParticipantQuery {
+	return NewUserClient(u.config).QueryConversationParticipations(u)
+}
+
+// QueryBlockedUsers queries the "blocked_users" edge of the User entity.
+func (u *User) QueryBlockedUsers() *BlockQuery {
+	return NewUserClient(u.config).QueryBlockedUsers(u)
+}
+
+// QueryBlockedByUsers queries the "blocked_by_users" edge of the User entity.
+func (u *User) QueryBlockedByUsers() *BlockQuery {
+	return NewUserClient(u.config).QueryBlockedByUsers(u)
 }
 
 // Update returns a builder for updating this User.

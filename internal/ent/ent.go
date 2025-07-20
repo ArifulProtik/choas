@@ -6,9 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/conversation"
+	"kakashi/chaos/internal/ent/conversationparticipant"
+	"kakashi/chaos/internal/ent/friend"
 	"kakashi/chaos/internal/ent/guild"
 	"kakashi/chaos/internal/ent/invitation"
 	"kakashi/chaos/internal/ent/member"
+	"kakashi/chaos/internal/ent/message"
+	"kakashi/chaos/internal/ent/notification"
 	"kakashi/chaos/internal/ent/session"
 	"kakashi/chaos/internal/ent/user"
 	"reflect"
@@ -77,11 +83,17 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			guild.Table:      guild.ValidColumn,
-			invitation.Table: invitation.ValidColumn,
-			member.Table:     member.ValidColumn,
-			session.Table:    session.ValidColumn,
-			user.Table:       user.ValidColumn,
+			block.Table:                   block.ValidColumn,
+			conversation.Table:            conversation.ValidColumn,
+			conversationparticipant.Table: conversationparticipant.ValidColumn,
+			friend.Table:                  friend.ValidColumn,
+			guild.Table:                   guild.ValidColumn,
+			invitation.Table:              invitation.ValidColumn,
+			member.Table:                  member.ValidColumn,
+			message.Table:                 message.ValidColumn,
+			notification.Table:            notification.ValidColumn,
+			session.Table:                 session.ValidColumn,
+			user.Table:                    user.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

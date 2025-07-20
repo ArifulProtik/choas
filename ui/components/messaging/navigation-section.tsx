@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
-import { Users, Zap, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Users } from "lucide-react";
+import React from "react";
 
 interface NavigationItem {
   id: string;
@@ -23,19 +23,7 @@ const defaultNavigationItems: NavigationItem[] = [
     id: "friends",
     label: "Friends",
     icon: Users,
-    onClick: () => console.log("Navigate to Friends"),
-  },
-  {
-    id: "nitro",
-    label: "Nitro",
-    icon: Zap,
-    onClick: () => console.log("Navigate to Nitro"),
-  },
-  {
-    id: "shop",
-    label: "Shop",
-    icon: ShoppingBag,
-    onClick: () => console.log("Navigate to Shop"),
+    onClick: () => {},
   },
 ];
 
@@ -45,6 +33,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
   onSectionChange,
 }) => {
   const handleItemClick = (item: NavigationItem) => {
+    console.log("NavigationSection - clicked item:", item.id);
     item.onClick();
     onSectionChange?.(item.id);
   };

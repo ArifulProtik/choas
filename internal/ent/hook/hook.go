@@ -8,6 +8,54 @@ import (
 	"kakashi/chaos/internal/ent"
 )
 
+// The BlockFunc type is an adapter to allow the use of ordinary
+// function as Block mutator.
+type BlockFunc func(context.Context, *ent.BlockMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BlockFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BlockMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlockMutation", m)
+}
+
+// The ConversationFunc type is an adapter to allow the use of ordinary
+// function as Conversation mutator.
+type ConversationFunc func(context.Context, *ent.ConversationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ConversationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ConversationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ConversationMutation", m)
+}
+
+// The ConversationParticipantFunc type is an adapter to allow the use of ordinary
+// function as ConversationParticipant mutator.
+type ConversationParticipantFunc func(context.Context, *ent.ConversationParticipantMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ConversationParticipantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ConversationParticipantMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ConversationParticipantMutation", m)
+}
+
+// The FriendFunc type is an adapter to allow the use of ordinary
+// function as Friend mutator.
+type FriendFunc func(context.Context, *ent.FriendMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FriendFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FriendMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FriendMutation", m)
+}
+
 // The GuildFunc type is an adapter to allow the use of ordinary
 // function as Guild mutator.
 type GuildFunc func(context.Context, *ent.GuildMutation) (ent.Value, error)
@@ -42,6 +90,30 @@ func (f MemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemberMutation", m)
+}
+
+// The MessageFunc type is an adapter to allow the use of ordinary
+// function as Message mutator.
+type MessageFunc func(context.Context, *ent.MessageMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MessageFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MessageMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MessageMutation", m)
+}
+
+// The NotificationFunc type is an adapter to allow the use of ordinary
+// function as Notification mutator.
+type NotificationFunc func(context.Context, *ent.NotificationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.NotificationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NotificationMutation", m)
 }
 
 // The SessionFunc type is an adapter to allow the use of ordinary

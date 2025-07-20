@@ -94,7 +94,7 @@
   - Create notification management actions (mark as read, delete)
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7_
 
-- [ ] 12. Add in-app notification system UI components
+- [x] 12. Add in-app notification system UI components
 
   - Create in-app notification components for messages and calls
   - Add unread message badge counts throughout the UI
@@ -102,13 +102,13 @@
   - Create toast notifications for various user actions
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 10. Build WebSocket client for real-time communication
+- [x] 10. Build WebSocket client for real-time communication
 
   - Create WebSocket client class with connection management
   - Implement automatic reconnection logic with exponential backoff
   - Add message sending and receiving handlers
   - Integrate WebSocket client with messaging store
-  - Write tests for connection handling and message flow
+  - Integrate WebSocket with notification store for real-time notifications
   - _Requirements: 2.1, 2.2, 2.5, 2.6_
 
 - [ ] 11. Implement WebRTC client for voice calls

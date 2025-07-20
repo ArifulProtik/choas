@@ -12,12 +12,24 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Block is the client for interacting with the Block builders.
+	Block *BlockClient
+	// Conversation is the client for interacting with the Conversation builders.
+	Conversation *ConversationClient
+	// ConversationParticipant is the client for interacting with the ConversationParticipant builders.
+	ConversationParticipant *ConversationParticipantClient
+	// Friend is the client for interacting with the Friend builders.
+	Friend *FriendClient
 	// Guild is the client for interacting with the Guild builders.
 	Guild *GuildClient
 	// Invitation is the client for interacting with the Invitation builders.
 	Invitation *InvitationClient
 	// Member is the client for interacting with the Member builders.
 	Member *MemberClient
+	// Message is the client for interacting with the Message builders.
+	Message *MessageClient
+	// Notification is the client for interacting with the Notification builders.
+	Notification *NotificationClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// User is the client for interacting with the User builders.
@@ -153,9 +165,15 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Block = NewBlockClient(tx.config)
+	tx.Conversation = NewConversationClient(tx.config)
+	tx.ConversationParticipant = NewConversationParticipantClient(tx.config)
+	tx.Friend = NewFriendClient(tx.config)
 	tx.Guild = NewGuildClient(tx.config)
 	tx.Invitation = NewInvitationClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
+	tx.Message = NewMessageClient(tx.config)
+	tx.Notification = NewNotificationClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
@@ -167,7 +185,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Guild.QueryXXX(), the query will be executed
+// applies a query, for example: Block.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

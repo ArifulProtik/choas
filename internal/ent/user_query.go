@@ -6,9 +6,14 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
+	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/conversationparticipant"
+	"kakashi/chaos/internal/ent/friend"
 	"kakashi/chaos/internal/ent/guild"
 	"kakashi/chaos/internal/ent/invitation"
 	"kakashi/chaos/internal/ent/member"
+	"kakashi/chaos/internal/ent/message"
+	"kakashi/chaos/internal/ent/notification"
 	"kakashi/chaos/internal/ent/predicate"
 	"kakashi/chaos/internal/ent/session"
 	"kakashi/chaos/internal/ent/user"
@@ -23,14 +28,22 @@ import (
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	ctx             *QueryContext
-	order           []user.OrderOption
-	inters          []Interceptor
-	predicates      []predicate.User
-	withSessions    *SessionQuery
-	withOwnedGuilds *GuildQuery
-	withInvitations *InvitationQuery
-	withMemberOf    *MemberQuery
+	ctx                            *QueryContext
+	order                          []user.OrderOption
+	inters                         []Interceptor
+	predicates                     []predicate.User
+	withSessions                   *SessionQuery
+	withOwnedGuilds                *GuildQuery
+	withInvitations                *InvitationQuery
+	withMemberOf                   *MemberQuery
+	withFriendRequestsSent         *FriendQuery
+	withFriendRequestsReceived     *FriendQuery
+	withSentMessages               *MessageQuery
+	withNotifications              *NotificationQuery
+	withRelatedNotifications       *NotificationQuery
+	withConversationParticipations *ConversationParticipantQuery
+	withBlockedUsers               *BlockQuery
+	withBlockedByUsers             *BlockQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -148,6 +161,182 @@ func (uq *UserQuery) QueryMemberOf() *MemberQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(member.Table, member.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.MemberOfTable, user.MemberOfColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFriendRequestsSent chains the current query on the "friend_requests_sent" edge.
+func (uq *UserQuery) QueryFriendRequestsSent() *FriendQuery {
+	query := (&FriendClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(friend.Table, friend.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.FriendRequestsSentTable, user.FriendRequestsSentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFriendRequestsReceived chains the current query on the "friend_requests_received" edge.
+func (uq *UserQuery) QueryFriendRequestsReceived() *FriendQuery {
+	query := (&FriendClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(friend.Table, friend.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.FriendRequestsReceivedTable, user.FriendRequestsReceivedColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySentMessages chains the current query on the "sent_messages" edge.
+func (uq *UserQuery) QuerySentMessages() *MessageQuery {
+	query := (&MessageClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(message.Table, message.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.SentMessagesTable, user.SentMessagesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNotifications chains the current query on the "notifications" edge.
+func (uq *UserQuery) QueryNotifications() *NotificationQuery {
+	query := (&NotificationClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(notification.Table, notification.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.NotificationsTable, user.NotificationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRelatedNotifications chains the current query on the "related_notifications" edge.
+func (uq *UserQuery) QueryRelatedNotifications() *NotificationQuery {
+	query := (&NotificationClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(notification.Table, notification.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.RelatedNotificationsTable, user.RelatedNotificationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryConversationParticipations chains the current query on the "conversation_participations" edge.
+func (uq *UserQuery) QueryConversationParticipations() *ConversationParticipantQuery {
+	query := (&ConversationParticipantClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(conversationparticipant.Table, conversationparticipant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.ConversationParticipationsTable, user.ConversationParticipationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBlockedUsers chains the current query on the "blocked_users" edge.
+func (uq *UserQuery) QueryBlockedUsers() *BlockQuery {
+	query := (&BlockClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(block.Table, block.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.BlockedUsersTable, user.BlockedUsersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBlockedByUsers chains the current query on the "blocked_by_users" edge.
+func (uq *UserQuery) QueryBlockedByUsers() *BlockQuery {
+	query := (&BlockClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(block.Table, block.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.BlockedByUsersTable, user.BlockedByUsersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -342,15 +531,23 @@ func (uq *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:          uq.config,
-		ctx:             uq.ctx.Clone(),
-		order:           append([]user.OrderOption{}, uq.order...),
-		inters:          append([]Interceptor{}, uq.inters...),
-		predicates:      append([]predicate.User{}, uq.predicates...),
-		withSessions:    uq.withSessions.Clone(),
-		withOwnedGuilds: uq.withOwnedGuilds.Clone(),
-		withInvitations: uq.withInvitations.Clone(),
-		withMemberOf:    uq.withMemberOf.Clone(),
+		config:                         uq.config,
+		ctx:                            uq.ctx.Clone(),
+		order:                          append([]user.OrderOption{}, uq.order...),
+		inters:                         append([]Interceptor{}, uq.inters...),
+		predicates:                     append([]predicate.User{}, uq.predicates...),
+		withSessions:                   uq.withSessions.Clone(),
+		withOwnedGuilds:                uq.withOwnedGuilds.Clone(),
+		withInvitations:                uq.withInvitations.Clone(),
+		withMemberOf:                   uq.withMemberOf.Clone(),
+		withFriendRequestsSent:         uq.withFriendRequestsSent.Clone(),
+		withFriendRequestsReceived:     uq.withFriendRequestsReceived.Clone(),
+		withSentMessages:               uq.withSentMessages.Clone(),
+		withNotifications:              uq.withNotifications.Clone(),
+		withRelatedNotifications:       uq.withRelatedNotifications.Clone(),
+		withConversationParticipations: uq.withConversationParticipations.Clone(),
+		withBlockedUsers:               uq.withBlockedUsers.Clone(),
+		withBlockedByUsers:             uq.withBlockedByUsers.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
@@ -398,6 +595,94 @@ func (uq *UserQuery) WithMemberOf(opts ...func(*MemberQuery)) *UserQuery {
 		opt(query)
 	}
 	uq.withMemberOf = query
+	return uq
+}
+
+// WithFriendRequestsSent tells the query-builder to eager-load the nodes that are connected to
+// the "friend_requests_sent" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithFriendRequestsSent(opts ...func(*FriendQuery)) *UserQuery {
+	query := (&FriendClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withFriendRequestsSent = query
+	return uq
+}
+
+// WithFriendRequestsReceived tells the query-builder to eager-load the nodes that are connected to
+// the "friend_requests_received" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithFriendRequestsReceived(opts ...func(*FriendQuery)) *UserQuery {
+	query := (&FriendClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withFriendRequestsReceived = query
+	return uq
+}
+
+// WithSentMessages tells the query-builder to eager-load the nodes that are connected to
+// the "sent_messages" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithSentMessages(opts ...func(*MessageQuery)) *UserQuery {
+	query := (&MessageClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withSentMessages = query
+	return uq
+}
+
+// WithNotifications tells the query-builder to eager-load the nodes that are connected to
+// the "notifications" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithNotifications(opts ...func(*NotificationQuery)) *UserQuery {
+	query := (&NotificationClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withNotifications = query
+	return uq
+}
+
+// WithRelatedNotifications tells the query-builder to eager-load the nodes that are connected to
+// the "related_notifications" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithRelatedNotifications(opts ...func(*NotificationQuery)) *UserQuery {
+	query := (&NotificationClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withRelatedNotifications = query
+	return uq
+}
+
+// WithConversationParticipations tells the query-builder to eager-load the nodes that are connected to
+// the "conversation_participations" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithConversationParticipations(opts ...func(*ConversationParticipantQuery)) *UserQuery {
+	query := (&ConversationParticipantClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withConversationParticipations = query
+	return uq
+}
+
+// WithBlockedUsers tells the query-builder to eager-load the nodes that are connected to
+// the "blocked_users" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithBlockedUsers(opts ...func(*BlockQuery)) *UserQuery {
+	query := (&BlockClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withBlockedUsers = query
+	return uq
+}
+
+// WithBlockedByUsers tells the query-builder to eager-load the nodes that are connected to
+// the "blocked_by_users" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithBlockedByUsers(opts ...func(*BlockQuery)) *UserQuery {
+	query := (&BlockClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withBlockedByUsers = query
 	return uq
 }
 
@@ -479,11 +764,19 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [12]bool{
 			uq.withSessions != nil,
 			uq.withOwnedGuilds != nil,
 			uq.withInvitations != nil,
 			uq.withMemberOf != nil,
+			uq.withFriendRequestsSent != nil,
+			uq.withFriendRequestsReceived != nil,
+			uq.withSentMessages != nil,
+			uq.withNotifications != nil,
+			uq.withRelatedNotifications != nil,
+			uq.withConversationParticipations != nil,
+			uq.withBlockedUsers != nil,
+			uq.withBlockedByUsers != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -529,6 +822,64 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadMemberOf(ctx, query, nodes,
 			func(n *User) { n.Edges.MemberOf = []*Member{} },
 			func(n *User, e *Member) { n.Edges.MemberOf = append(n.Edges.MemberOf, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withFriendRequestsSent; query != nil {
+		if err := uq.loadFriendRequestsSent(ctx, query, nodes,
+			func(n *User) { n.Edges.FriendRequestsSent = []*Friend{} },
+			func(n *User, e *Friend) { n.Edges.FriendRequestsSent = append(n.Edges.FriendRequestsSent, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withFriendRequestsReceived; query != nil {
+		if err := uq.loadFriendRequestsReceived(ctx, query, nodes,
+			func(n *User) { n.Edges.FriendRequestsReceived = []*Friend{} },
+			func(n *User, e *Friend) { n.Edges.FriendRequestsReceived = append(n.Edges.FriendRequestsReceived, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withSentMessages; query != nil {
+		if err := uq.loadSentMessages(ctx, query, nodes,
+			func(n *User) { n.Edges.SentMessages = []*Message{} },
+			func(n *User, e *Message) { n.Edges.SentMessages = append(n.Edges.SentMessages, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withNotifications; query != nil {
+		if err := uq.loadNotifications(ctx, query, nodes,
+			func(n *User) { n.Edges.Notifications = []*Notification{} },
+			func(n *User, e *Notification) { n.Edges.Notifications = append(n.Edges.Notifications, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withRelatedNotifications; query != nil {
+		if err := uq.loadRelatedNotifications(ctx, query, nodes,
+			func(n *User) { n.Edges.RelatedNotifications = []*Notification{} },
+			func(n *User, e *Notification) { n.Edges.RelatedNotifications = append(n.Edges.RelatedNotifications, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withConversationParticipations; query != nil {
+		if err := uq.loadConversationParticipations(ctx, query, nodes,
+			func(n *User) { n.Edges.ConversationParticipations = []*ConversationParticipant{} },
+			func(n *User, e *ConversationParticipant) {
+				n.Edges.ConversationParticipations = append(n.Edges.ConversationParticipations, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withBlockedUsers; query != nil {
+		if err := uq.loadBlockedUsers(ctx, query, nodes,
+			func(n *User) { n.Edges.BlockedUsers = []*Block{} },
+			func(n *User, e *Block) { n.Edges.BlockedUsers = append(n.Edges.BlockedUsers, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withBlockedByUsers; query != nil {
+		if err := uq.loadBlockedByUsers(ctx, query, nodes,
+			func(n *User) { n.Edges.BlockedByUsers = []*Block{} },
+			func(n *User, e *Block) { n.Edges.BlockedByUsers = append(n.Edges.BlockedByUsers, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -654,6 +1005,248 @@ func (uq *UserQuery) loadMemberOf(ctx context.Context, query *MemberQuery, nodes
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_member_of" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadFriendRequestsSent(ctx context.Context, query *FriendQuery, nodes []*User, init func(*User), assign func(*User, *Friend)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(friend.FieldRequesterID)
+	}
+	query.Where(predicate.Friend(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.FriendRequestsSentColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.RequesterID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "requester_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadFriendRequestsReceived(ctx context.Context, query *FriendQuery, nodes []*User, init func(*User), assign func(*User, *Friend)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(friend.FieldAddresseeID)
+	}
+	query.Where(predicate.Friend(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.FriendRequestsReceivedColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AddresseeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "addressee_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadSentMessages(ctx context.Context, query *MessageQuery, nodes []*User, init func(*User), assign func(*User, *Message)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(message.FieldSenderID)
+	}
+	query.Where(predicate.Message(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.SentMessagesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SenderID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "sender_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadNotifications(ctx context.Context, query *NotificationQuery, nodes []*User, init func(*User), assign func(*User, *Notification)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(notification.FieldUserID)
+	}
+	query.Where(predicate.Notification(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.NotificationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadRelatedNotifications(ctx context.Context, query *NotificationQuery, nodes []*User, init func(*User), assign func(*User, *Notification)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(notification.FieldRelatedUserID)
+	}
+	query.Where(predicate.Notification(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.RelatedNotificationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.RelatedUserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "related_user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadConversationParticipations(ctx context.Context, query *ConversationParticipantQuery, nodes []*User, init func(*User), assign func(*User, *ConversationParticipant)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(conversationparticipant.FieldUserID)
+	}
+	query.Where(predicate.ConversationParticipant(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ConversationParticipationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadBlockedUsers(ctx context.Context, query *BlockQuery, nodes []*User, init func(*User), assign func(*User, *Block)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(block.FieldBlockerID)
+	}
+	query.Where(predicate.Block(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.BlockedUsersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.BlockerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "blocker_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadBlockedByUsers(ctx context.Context, query *BlockQuery, nodes []*User, init func(*User), assign func(*User, *Block)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(block.FieldBlockedID)
+	}
+	query.Where(predicate.Block(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.BlockedByUsersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.BlockedID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "blocked_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

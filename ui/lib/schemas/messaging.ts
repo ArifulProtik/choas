@@ -1,10 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { User } from './user';
+import { User } from "./user";
 
 // Message types
-export type MessageType = 'text' | 'call_start' | 'call_end' | 'system';
+export type MessageType = "text" | "call_start" | "call_end" | "system";
 
-export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+export type MessageStatus =
+  | "sending"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed";
 
 export interface Message {
   id: string;
@@ -33,7 +38,7 @@ export interface Conversation {
 }
 
 // User presence types
-export type UserStatus = 'online' | 'offline' | 'in_call' | 'away';
+export type UserStatus = "online" | "offline" | "in_call" | "away";
 
 export interface UserPresence {
   user_id: string;
@@ -43,9 +48,15 @@ export interface UserPresence {
 }
 
 // Call types
-export type CallStatus = 'pending' | 'ringing' | 'accepted' | 'declined' | 'ended' | 'failed';
+export type CallStatus =
+  | "pending"
+  | "ringing"
+  | "accepted"
+  | "declined"
+  | "ended"
+  | "failed";
 
-export type CallType = 'voice' | 'video'; // Future-proofing for video calls
+export type CallType = "voice" | "video"; // Future-proofing for video calls
 
 export interface Call {
   id: string;
@@ -61,21 +72,23 @@ export interface Call {
 }
 
 // WebSocket message types
-export type WSMessageType = 
-  | 'message'
-  | 'typing_start'
-  | 'typing_stop'
-  | 'presence_update'
-  | 'call_request'
-  | 'call_response'
-  | 'call_end'
-  | 'message_read'
-  | 'user_blocked'
-  | 'conversation_deleted'
-  | 'friend_request'
-  | 'friend_request_accepted'
-  | 'friend_request_declined'
-  | 'friend_removed';
+export type WSMessageType =
+  | "message"
+  | "typing_start"
+  | "typing_stop"
+  | "presence_update"
+  | "call_request"
+  | "call_response"
+  | "call_end"
+  | "message_read"
+  | "user_blocked"
+  | "conversation_deleted"
+  | "friend_request"
+  | "friend_request_accepted"
+  | "friend_request_declined"
+  | "friend_removed"
+  | "ping"
+  | "pong";
 
 export interface WSMessage {
   type: WSMessageType;
@@ -106,7 +119,7 @@ export interface WSCallRequestPayload {
 
 export interface WSCallResponsePayload {
   call_id: string;
-  response: 'accepted' | 'declined';
+  response: "accepted" | "declined";
   caller_id: string;
   callee_id: string;
 }
@@ -123,7 +136,7 @@ export interface WSFriendRequestPayload {
 
 export interface WSFriendResponsePayload {
   friend_request_id: string;
-  response: 'accepted' | 'declined';
+  response: "accepted" | "declined";
   requester_id: string;
   recipient_id: string;
 }
@@ -135,7 +148,7 @@ export interface WSFriendRemovedPayload {
 }
 
 // Friend system types
-export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked';
+export type FriendshipStatus = "pending" | "accepted" | "declined" | "blocked";
 
 export interface FriendRequest {
   id: string;
@@ -151,7 +164,7 @@ export interface Friendship {
   id: string;
   user1: User;
   user2: User;
-  status: 'accepted';
+  status: "accepted";
   created_at: string;
   updated_at: string;
 }
@@ -199,7 +212,7 @@ export interface InitiateCallRequest {
 
 export interface CallResponse {
   call_id: string;
-  response: 'accepted' | 'declined';
+  response: "accepted" | "declined";
 }
 
 // Friend system API request types
@@ -210,7 +223,7 @@ export interface SendFriendRequestRequest {
 
 export interface RespondToFriendRequestRequest {
   friend_request_id: string;
-  response: 'accepted' | 'declined';
+  response: "accepted" | "declined";
 }
 
 export interface RemoveFriendRequest {
@@ -234,7 +247,7 @@ export interface NotificationPreferences {
 
 export interface InAppNotification {
   id: string;
-  type: 'message' | 'call' | 'system';
+  type: "message" | "call" | "system";
   title: string;
   message: string;
   user?: User;

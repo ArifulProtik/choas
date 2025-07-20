@@ -40,6 +40,22 @@ const (
 	EdgeInvitations = "invitations"
 	// EdgeMemberOf holds the string denoting the member_of edge name in mutations.
 	EdgeMemberOf = "member_of"
+	// EdgeFriendRequestsSent holds the string denoting the friend_requests_sent edge name in mutations.
+	EdgeFriendRequestsSent = "friend_requests_sent"
+	// EdgeFriendRequestsReceived holds the string denoting the friend_requests_received edge name in mutations.
+	EdgeFriendRequestsReceived = "friend_requests_received"
+	// EdgeSentMessages holds the string denoting the sent_messages edge name in mutations.
+	EdgeSentMessages = "sent_messages"
+	// EdgeNotifications holds the string denoting the notifications edge name in mutations.
+	EdgeNotifications = "notifications"
+	// EdgeRelatedNotifications holds the string denoting the related_notifications edge name in mutations.
+	EdgeRelatedNotifications = "related_notifications"
+	// EdgeConversationParticipations holds the string denoting the conversation_participations edge name in mutations.
+	EdgeConversationParticipations = "conversation_participations"
+	// EdgeBlockedUsers holds the string denoting the blocked_users edge name in mutations.
+	EdgeBlockedUsers = "blocked_users"
+	// EdgeBlockedByUsers holds the string denoting the blocked_by_users edge name in mutations.
+	EdgeBlockedByUsers = "blocked_by_users"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// SessionsTable is the table that holds the sessions relation/edge.
@@ -70,6 +86,62 @@ const (
 	MemberOfInverseTable = "members"
 	// MemberOfColumn is the table column denoting the member_of relation/edge.
 	MemberOfColumn = "user_member_of"
+	// FriendRequestsSentTable is the table that holds the friend_requests_sent relation/edge.
+	FriendRequestsSentTable = "friends"
+	// FriendRequestsSentInverseTable is the table name for the Friend entity.
+	// It exists in this package in order to avoid circular dependency with the "friend" package.
+	FriendRequestsSentInverseTable = "friends"
+	// FriendRequestsSentColumn is the table column denoting the friend_requests_sent relation/edge.
+	FriendRequestsSentColumn = "requester_id"
+	// FriendRequestsReceivedTable is the table that holds the friend_requests_received relation/edge.
+	FriendRequestsReceivedTable = "friends"
+	// FriendRequestsReceivedInverseTable is the table name for the Friend entity.
+	// It exists in this package in order to avoid circular dependency with the "friend" package.
+	FriendRequestsReceivedInverseTable = "friends"
+	// FriendRequestsReceivedColumn is the table column denoting the friend_requests_received relation/edge.
+	FriendRequestsReceivedColumn = "addressee_id"
+	// SentMessagesTable is the table that holds the sent_messages relation/edge.
+	SentMessagesTable = "messages"
+	// SentMessagesInverseTable is the table name for the Message entity.
+	// It exists in this package in order to avoid circular dependency with the "message" package.
+	SentMessagesInverseTable = "messages"
+	// SentMessagesColumn is the table column denoting the sent_messages relation/edge.
+	SentMessagesColumn = "sender_id"
+	// NotificationsTable is the table that holds the notifications relation/edge.
+	NotificationsTable = "notifications"
+	// NotificationsInverseTable is the table name for the Notification entity.
+	// It exists in this package in order to avoid circular dependency with the "notification" package.
+	NotificationsInverseTable = "notifications"
+	// NotificationsColumn is the table column denoting the notifications relation/edge.
+	NotificationsColumn = "user_id"
+	// RelatedNotificationsTable is the table that holds the related_notifications relation/edge.
+	RelatedNotificationsTable = "notifications"
+	// RelatedNotificationsInverseTable is the table name for the Notification entity.
+	// It exists in this package in order to avoid circular dependency with the "notification" package.
+	RelatedNotificationsInverseTable = "notifications"
+	// RelatedNotificationsColumn is the table column denoting the related_notifications relation/edge.
+	RelatedNotificationsColumn = "related_user_id"
+	// ConversationParticipationsTable is the table that holds the conversation_participations relation/edge.
+	ConversationParticipationsTable = "conversation_participants"
+	// ConversationParticipationsInverseTable is the table name for the ConversationParticipant entity.
+	// It exists in this package in order to avoid circular dependency with the "conversationparticipant" package.
+	ConversationParticipationsInverseTable = "conversation_participants"
+	// ConversationParticipationsColumn is the table column denoting the conversation_participations relation/edge.
+	ConversationParticipationsColumn = "user_id"
+	// BlockedUsersTable is the table that holds the blocked_users relation/edge.
+	BlockedUsersTable = "blocks"
+	// BlockedUsersInverseTable is the table name for the Block entity.
+	// It exists in this package in order to avoid circular dependency with the "block" package.
+	BlockedUsersInverseTable = "blocks"
+	// BlockedUsersColumn is the table column denoting the blocked_users relation/edge.
+	BlockedUsersColumn = "blocker_id"
+	// BlockedByUsersTable is the table that holds the blocked_by_users relation/edge.
+	BlockedByUsersTable = "blocks"
+	// BlockedByUsersInverseTable is the table name for the Block entity.
+	// It exists in this package in order to avoid circular dependency with the "block" package.
+	BlockedByUsersInverseTable = "blocks"
+	// BlockedByUsersColumn is the table column denoting the blocked_by_users relation/edge.
+	BlockedByUsersColumn = "blocked_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -223,6 +295,118 @@ func ByMemberOf(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newMemberOfStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByFriendRequestsSentCount orders the results by friend_requests_sent count.
+func ByFriendRequestsSentCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFriendRequestsSentStep(), opts...)
+	}
+}
+
+// ByFriendRequestsSent orders the results by friend_requests_sent terms.
+func ByFriendRequestsSent(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFriendRequestsSentStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByFriendRequestsReceivedCount orders the results by friend_requests_received count.
+func ByFriendRequestsReceivedCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFriendRequestsReceivedStep(), opts...)
+	}
+}
+
+// ByFriendRequestsReceived orders the results by friend_requests_received terms.
+func ByFriendRequestsReceived(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFriendRequestsReceivedStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// BySentMessagesCount orders the results by sent_messages count.
+func BySentMessagesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSentMessagesStep(), opts...)
+	}
+}
+
+// BySentMessages orders the results by sent_messages terms.
+func BySentMessages(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSentMessagesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByNotificationsCount orders the results by notifications count.
+func ByNotificationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNotificationsStep(), opts...)
+	}
+}
+
+// ByNotifications orders the results by notifications terms.
+func ByNotifications(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotificationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByRelatedNotificationsCount orders the results by related_notifications count.
+func ByRelatedNotificationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRelatedNotificationsStep(), opts...)
+	}
+}
+
+// ByRelatedNotifications orders the results by related_notifications terms.
+func ByRelatedNotifications(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRelatedNotificationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByConversationParticipationsCount orders the results by conversation_participations count.
+func ByConversationParticipationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newConversationParticipationsStep(), opts...)
+	}
+}
+
+// ByConversationParticipations orders the results by conversation_participations terms.
+func ByConversationParticipations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newConversationParticipationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBlockedUsersCount orders the results by blocked_users count.
+func ByBlockedUsersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBlockedUsersStep(), opts...)
+	}
+}
+
+// ByBlockedUsers orders the results by blocked_users terms.
+func ByBlockedUsers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBlockedUsersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBlockedByUsersCount orders the results by blocked_by_users count.
+func ByBlockedByUsersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBlockedByUsersStep(), opts...)
+	}
+}
+
+// ByBlockedByUsers orders the results by blocked_by_users terms.
+func ByBlockedByUsers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBlockedByUsersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSessionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -249,5 +433,61 @@ func newMemberOfStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MemberOfInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MemberOfTable, MemberOfColumn),
+	)
+}
+func newFriendRequestsSentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FriendRequestsSentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, FriendRequestsSentTable, FriendRequestsSentColumn),
+	)
+}
+func newFriendRequestsReceivedStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FriendRequestsReceivedInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, FriendRequestsReceivedTable, FriendRequestsReceivedColumn),
+	)
+}
+func newSentMessagesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SentMessagesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, SentMessagesTable, SentMessagesColumn),
+	)
+}
+func newNotificationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotificationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, NotificationsTable, NotificationsColumn),
+	)
+}
+func newRelatedNotificationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RelatedNotificationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, RelatedNotificationsTable, RelatedNotificationsColumn),
+	)
+}
+func newConversationParticipationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ConversationParticipationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, ConversationParticipationsTable, ConversationParticipationsColumn),
+	)
+}
+func newBlockedUsersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BlockedUsersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, BlockedUsersTable, BlockedUsersColumn),
+	)
+}
+func newBlockedByUsersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BlockedByUsersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, BlockedByUsersTable, BlockedByUsersColumn),
 	)
 }

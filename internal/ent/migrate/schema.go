@@ -8,6 +8,180 @@ import (
 )
 
 var (
+	// BlocksColumns holds the columns for the "blocks" table.
+	BlocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "blocker_id", Type: field.TypeString},
+		{Name: "blocked_id", Type: field.TypeString},
+	}
+	// BlocksTable holds the schema information for the "blocks" table.
+	BlocksTable = &schema.Table{
+		Name:       "blocks",
+		Columns:    BlocksColumns,
+		PrimaryKey: []*schema.Column{BlocksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "blocks_users_blocker",
+				Columns:    []*schema.Column{BlocksColumns[3]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "blocks_users_blocked",
+				Columns:    []*schema.Column{BlocksColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "block_blocker_id_blocked_id",
+				Unique:  true,
+				Columns: []*schema.Column{BlocksColumns[3], BlocksColumns[4]},
+			},
+			{
+				Name:    "block_blocked_id",
+				Unique:  false,
+				Columns: []*schema.Column{BlocksColumns[4]},
+			},
+		},
+	}
+	// ConversationsColumns holds the columns for the "conversations" table.
+	ConversationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"direct", "group"}, Default: "direct"},
+		{Name: "name", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "last_message_at", Type: field.TypeTime, Nullable: true},
+		{Name: "is_archived", Type: field.TypeBool, Default: false},
+		{Name: "is_muted", Type: field.TypeBool, Default: false},
+	}
+	// ConversationsTable holds the schema information for the "conversations" table.
+	ConversationsTable = &schema.Table{
+		Name:       "conversations",
+		Columns:    ConversationsColumns,
+		PrimaryKey: []*schema.Column{ConversationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "conversation_type",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[3]},
+			},
+			{
+				Name:    "conversation_last_message_at",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[5]},
+			},
+			{
+				Name:    "conversation_is_archived",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[6]},
+			},
+		},
+	}
+	// ConversationParticipantsColumns holds the columns for the "conversation_participants" table.
+	ConversationParticipantsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "joined_at", Type: field.TypeTime},
+		{Name: "last_read_at", Type: field.TypeTime, Nullable: true},
+		{Name: "conversation_participants", Type: field.TypeString, Nullable: true},
+		{Name: "conversation_id", Type: field.TypeString},
+		{Name: "user_id", Type: field.TypeString},
+	}
+	// ConversationParticipantsTable holds the schema information for the "conversation_participants" table.
+	ConversationParticipantsTable = &schema.Table{
+		Name:       "conversation_participants",
+		Columns:    ConversationParticipantsColumns,
+		PrimaryKey: []*schema.Column{ConversationParticipantsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "conversation_participants_conversations_participants",
+				Columns:    []*schema.Column{ConversationParticipantsColumns[5]},
+				RefColumns: []*schema.Column{ConversationsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "conversation_participants_conversations_conversation",
+				Columns:    []*schema.Column{ConversationParticipantsColumns[6]},
+				RefColumns: []*schema.Column{ConversationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "conversation_participants_users_user",
+				Columns:    []*schema.Column{ConversationParticipantsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "conversationparticipant_conversation_id_user_id",
+				Unique:  true,
+				Columns: []*schema.Column{ConversationParticipantsColumns[6], ConversationParticipantsColumns[7]},
+			},
+			{
+				Name:    "conversationparticipant_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[7]},
+			},
+			{
+				Name:    "conversationparticipant_last_read_at",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[4]},
+			},
+		},
+	}
+	// FriendsColumns holds the columns for the "friends" table.
+	FriendsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "accepted", "declined"}, Default: "pending"},
+		{Name: "requester_id", Type: field.TypeString},
+		{Name: "addressee_id", Type: field.TypeString},
+	}
+	// FriendsTable holds the schema information for the "friends" table.
+	FriendsTable = &schema.Table{
+		Name:       "friends",
+		Columns:    FriendsColumns,
+		PrimaryKey: []*schema.Column{FriendsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "friends_users_requester",
+				Columns:    []*schema.Column{FriendsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "friends_users_addressee",
+				Columns:    []*schema.Column{FriendsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "friend_requester_id_addressee_id",
+				Unique:  true,
+				Columns: []*schema.Column{FriendsColumns[4], FriendsColumns[5]},
+			},
+			{
+				Name:    "friend_addressee_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{FriendsColumns[5], FriendsColumns[3]},
+			},
+			{
+				Name:    "friend_requester_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{FriendsColumns[4], FriendsColumns[3]},
+			},
+		},
+	}
 	// GuildsColumns holds the columns for the "guilds" table.
 	GuildsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -95,6 +269,118 @@ var (
 			},
 		},
 	}
+	// MessagesColumns holds the columns for the "messages" table.
+	MessagesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "message_type", Type: field.TypeEnum, Enums: []string{"text", "image", "file"}, Default: "text"},
+		{Name: "is_deleted", Type: field.TypeBool, Default: false},
+		{Name: "edited_at", Type: field.TypeTime, Nullable: true},
+		{Name: "conversation_messages", Type: field.TypeString, Nullable: true},
+		{Name: "conversation_id", Type: field.TypeString},
+		{Name: "sender_id", Type: field.TypeString},
+	}
+	// MessagesTable holds the schema information for the "messages" table.
+	MessagesTable = &schema.Table{
+		Name:       "messages",
+		Columns:    MessagesColumns,
+		PrimaryKey: []*schema.Column{MessagesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "messages_conversations_messages",
+				Columns:    []*schema.Column{MessagesColumns[7]},
+				RefColumns: []*schema.Column{ConversationsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "messages_conversations_conversation",
+				Columns:    []*schema.Column{MessagesColumns[8]},
+				RefColumns: []*schema.Column{ConversationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "messages_users_sender",
+				Columns:    []*schema.Column{MessagesColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "message_conversation_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[8], MessagesColumns[1]},
+			},
+			{
+				Name:    "message_sender_id",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[9]},
+			},
+			{
+				Name:    "message_is_deleted",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[5]},
+			},
+		},
+	}
+	// NotificationsColumns holds the columns for the "notifications" table.
+	NotificationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"friend_request", "message", "friend_accepted"}},
+		{Name: "title", Type: field.TypeString, Size: 100},
+		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "is_read", Type: field.TypeBool, Default: false},
+		{Name: "user_id", Type: field.TypeString},
+		{Name: "related_user_id", Type: field.TypeString, Nullable: true},
+		{Name: "related_conversation_id", Type: field.TypeString, Nullable: true},
+	}
+	// NotificationsTable holds the schema information for the "notifications" table.
+	NotificationsTable = &schema.Table{
+		Name:       "notifications",
+		Columns:    NotificationsColumns,
+		PrimaryKey: []*schema.Column{NotificationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "notifications_users_user",
+				Columns:    []*schema.Column{NotificationsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "notifications_users_related_user",
+				Columns:    []*schema.Column{NotificationsColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notifications_conversations_related_conversation",
+				Columns:    []*schema.Column{NotificationsColumns[9]},
+				RefColumns: []*schema.Column{ConversationsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notification_user_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[7], NotificationsColumns[1]},
+			},
+			{
+				Name:    "notification_user_id_is_read",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[7], NotificationsColumns[6]},
+			},
+			{
+				Name:    "notification_type",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[3]},
+			},
+		},
+	}
 	// SessionsColumns holds the columns for the "sessions" table.
 	SessionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -140,19 +426,38 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		BlocksTable,
+		ConversationsTable,
+		ConversationParticipantsTable,
+		FriendsTable,
 		GuildsTable,
 		InvitationsTable,
 		MembersTable,
+		MessagesTable,
+		NotificationsTable,
 		SessionsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	BlocksTable.ForeignKeys[0].RefTable = UsersTable
+	BlocksTable.ForeignKeys[1].RefTable = UsersTable
+	ConversationParticipantsTable.ForeignKeys[0].RefTable = ConversationsTable
+	ConversationParticipantsTable.ForeignKeys[1].RefTable = ConversationsTable
+	ConversationParticipantsTable.ForeignKeys[2].RefTable = UsersTable
+	FriendsTable.ForeignKeys[0].RefTable = UsersTable
+	FriendsTable.ForeignKeys[1].RefTable = UsersTable
 	GuildsTable.ForeignKeys[0].RefTable = UsersTable
 	InvitationsTable.ForeignKeys[0].RefTable = GuildsTable
 	InvitationsTable.ForeignKeys[1].RefTable = UsersTable
 	MembersTable.ForeignKeys[0].RefTable = GuildsTable
 	MembersTable.ForeignKeys[1].RefTable = UsersTable
+	MessagesTable.ForeignKeys[0].RefTable = ConversationsTable
+	MessagesTable.ForeignKeys[1].RefTable = ConversationsTable
+	MessagesTable.ForeignKeys[2].RefTable = UsersTable
+	NotificationsTable.ForeignKeys[0].RefTable = UsersTable
+	NotificationsTable.ForeignKeys[1].RefTable = UsersTable
+	NotificationsTable.ForeignKeys[2].RefTable = ConversationsTable
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 }

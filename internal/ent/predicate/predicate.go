@@ -6,6 +6,18 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Block is the predicate function for block builders.
+type Block func(*sql.Selector)
+
+// Conversation is the predicate function for conversation builders.
+type Conversation func(*sql.Selector)
+
+// ConversationParticipant is the predicate function for conversationparticipant builders.
+type ConversationParticipant func(*sql.Selector)
+
+// Friend is the predicate function for friend builders.
+type Friend func(*sql.Selector)
+
 // Guild is the predicate function for guild builders.
 type Guild func(*sql.Selector)
 
@@ -14,6 +26,12 @@ type Invitation func(*sql.Selector)
 
 // Member is the predicate function for member builders.
 type Member func(*sql.Selector)
+
+// Message is the predicate function for message builders.
+type Message func(*sql.Selector)
+
+// Notification is the predicate function for notification builders.
+type Notification func(*sql.Selector)
 
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)

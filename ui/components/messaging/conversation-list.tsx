@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
-import { Users } from "lucide-react";
-import { useMessagingStore } from "@/components/store/messaging-store";
-import { useAuthStore } from "@/components/store/auth-store";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchBar } from "@/components/search";
+import { EmptyState, LoadingSpinner } from "@/components/shared";
+import { useAuthStore } from "@/components/store/auth-store";
+import { useMessagingStore } from "@/components/store/messaging-store";
 import { useSearchStore } from "@/components/store/search-store";
-import { NavigationSection } from "./navigation-section";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Users } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import React, { useState } from "react";
+import { BlockedUsersModal } from "./blocked-users-modal";
 import { ConversationItem } from "./conversation-list/conversation-item";
 import { ConversationListHeader } from "./conversation-list/conversation-list-header";
 import { UserSearchModal } from "./conversation-list/user-search-modal";
-import { BlockedUsersModal } from "./blocked-users-modal";
-import { EmptyState, LoadingSpinner } from "@/components/shared";
+import { NavigationSection } from "./navigation-section";
 
 export const ConversationList: React.FC = () => {
   const { user: currentUser } = useAuthStore();
@@ -39,17 +40,46 @@ export const ConversationList: React.FC = () => {
   // Local state for navigation section
   const [activeSection, setActiveSection] = useState<string>("messages");
 
+  const router = useRouter();
+  const pathname = usePathname();
   const conversations = getFilteredConversations();
   const totalUnreadCount = getUnreadCount();
 
-  const handleSelectUser = (userId: string) => {
-    startConversation(userId);
+  // Check if we're on the home route (friends page)
+  const isOnHomePage = pathname === "/";
+
+  // Navigation items for the conversation list
+  const navigationItems = [
+    {
+      id: "friends",
+      label: "Friends",
+      icon: Users,
+      onClick: () => {
+        router.push("/");
+      },
+      isActive: isOnHomePage,
+    },
+  ];
+
+  const handleSelectUser = async (userId: string) => {
+    const conversationId = await startConversation(userId);
     setShowUserSearch(false);
+    if (conversationId) {
+      router.push(`/conversation/${conversationId}`);
+    }
   };
 
-  const handleUserSelectFromSearch = (user: any) => {
+  const handleUserSelectFromSearch = async (user: any) => {
     addToRecentSearches(user);
-    startConversation(user.id);
+    const conversationId = await startConversation(user.id);
+    if (conversationId) {
+      router.push(`/conversation/${conversationId}`);
+    }
+  };
+
+  const handleConversationSelect = (conversationId: string) => {
+    setActiveConversation(conversationId);
+    router.push(`/conversation/${conversationId}`);
   };
 
   const handleArchiveConversation = (conversationId: string) => {
@@ -80,6 +110,7 @@ export const ConversationList: React.FC = () => {
 
       {/* Navigation Section */}
       <NavigationSection
+        items={navigationItems}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
       />
@@ -133,7 +164,7 @@ export const ConversationList: React.FC = () => {
                 conversation={conversation}
                 isActive={activeConversationId === conversation.id}
                 currentUserId={currentUser.id}
-                onSelect={setActiveConversation}
+                onSelect={handleConversationSelect}
                 onArchive={handleArchiveConversation}
               />
             ))}

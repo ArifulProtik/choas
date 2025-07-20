@@ -1,25 +1,15 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import {
-  Headphones,
-  MessageCircle,
-  Plus,
-  Users,
-  Search,
-  Bell,
-} from "lucide-react";
-import { useMessagingStore } from "@/components/store/messaging-store";
 import { useAuthStore } from "@/components/store/auth-store";
-import { useNotificationStore } from "@/components/store/notification-store";
+import { useMessagingStore } from "@/components/store/messaging-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { NotificationCenter } from "@/components/notifications";
-import { getOtherParticipant } from "@/lib/utils/messaging-utils";
 import { cn } from "@/lib/utils";
+import { getOtherParticipant } from "@/lib/utils/messaging-utils";
+import { Headphones, Plus, Search } from "lucide-react";
+import Link from "next/link";
 
 // Mock server data
 const mockServers = [
@@ -54,7 +44,6 @@ const MainSidebar = () => {
     setActiveConversation,
     markMessagesAsRead,
   } = useMessagingStore();
-  const { unreadCount: notificationUnreadCount } = useNotificationStore();
 
   // Get conversations with unread messages for DM notifications
   const unseenConversations = conversations.filter(
@@ -176,39 +165,6 @@ const MainSidebar = () => {
         <div className="mx-4 h-px bg-border mb-2" />
       )}
 
-      {/* Notification Center */}
-      <div className="p-3">
-        <NotificationCenter
-          trigger={
-            <div className="relative group">
-              <div
-                className={cn(
-                  "flex justify-center items-center h-12 w-12 rounded-2xl transition-all duration-200 mx-auto",
-                  "bg-muted text-muted-foreground hover:bg-orange-600 hover:text-white group-hover:rounded-xl"
-                )}
-              >
-                <Bell size={20} />
-              </div>
-
-              {/* Notification badge */}
-              {notificationUnreadCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs font-bold"
-                >
-                  {notificationUnreadCount > 99
-                    ? "99+"
-                    : notificationUnreadCount}
-                </Badge>
-              )}
-            </div>
-          }
-        />
-      </div>
-
-      {/* Separator */}
-      <div className="mx-4 h-px bg-border mb-2" />
-
       {/* Scrollable Servers List */}
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-2">
@@ -270,22 +226,6 @@ const MainSidebar = () => {
               )}
             >
               <Search size={20} />
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Friends Button */}
-      <div className="p-3">
-        <Link href="/friends" className="block">
-          <div className="relative group">
-            <div
-              className={cn(
-                "flex justify-center items-center h-12 w-12 rounded-2xl transition-all duration-200 mx-auto",
-                "bg-muted text-muted-foreground hover:bg-blue-600 hover:text-white group-hover:rounded-xl"
-              )}
-            >
-              <Users size={20} />
             </div>
           </div>
         </Link>
