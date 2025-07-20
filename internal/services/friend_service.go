@@ -247,3 +247,66 @@ func (s *Services) IsBlocked(ctx context.Context, userID1, userID2 string) (bool
 
 	return count > 0, nil
 }
+
+// SearchUsers searches for users by username or name (case-insensitive partial match)
+func (s *Services) SearchUsers(ctx context.Context, query string, currentUserID string) ([]*ent.User, error) {
+	if query == "" {
+		return []*ent.User{}, nil
+	}
+
+	users, err := s.ent.User.Query().
+		Where(
+			user.And(
+				user.IDNEQ(currentUserID), // Exclude current user from results
+				user.Or(
+					user.UsernameContainsFold(query),
+					user.NameContainsFold(query),
+				),
+			),
+		).
+		Limit(20). // Limit results to prevent large responses
+		All(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
+	}
+
+	return users, nil
+}
+
+// SearchFriends searches within user's friends by username or name (case-insensitive partial match)
+func (s *Services) SearchFriends(ctx context.Context, query string, userID string) ([]*ent.User, error) {
+	if query == "" {
+		return []*ent.User{}, nil
+	}
+
+	// Query friends where user is either requester or addressee, status is accepted,
+	// and the friend's username or name matches the query
+	friends, err := s.ent.User.Query().
+		Where(
+			user.And(
+				user.Or(
+					user.HasFriendRequestsSentWith(
+						friend.AddresseeIDEQ(userID),
+						friend.StatusEQ(friend.StatusAccepted),
+					),
+					user.HasFriendRequestsReceivedWith(
+						friend.RequesterIDEQ(userID),
+						friend.StatusEQ(friend.StatusAccepted),
+					),
+				),
+				user.Or(
+					user.UsernameContainsFold(query),
+					user.NameContainsFold(query),
+				),
+			),
+		).
+		Limit(20). // Limit results to prevent large responses
+		All(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to search friends: %w", err)
+	}
+
+	return friends, nil
+}

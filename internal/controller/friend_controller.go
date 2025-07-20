@@ -262,3 +262,65 @@ func (c *Controller) GetPendingRequests(e echo.Context) error {
 
 	return e.JSON(http.StatusOK, pendingRequests)
 }
+
+// SearchUsers handles GET /users/search?q=query
+func (c *Controller) SearchUsers(e echo.Context) error {
+	ctx := e.Request().Context()
+	authUserID := e.Get("user_id").(string)
+	if authUserID == "" {
+		return e.JSON(http.StatusUnauthorized, ErrorResponse{
+			Code:    http.StatusUnauthorized,
+			Message: utility.ErrUnauthorized,
+		})
+	}
+
+	query := e.QueryParam("q")
+	if query == "" {
+		return e.JSON(http.StatusBadRequest, ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Search query parameter 'q' is required",
+		})
+	}
+
+	users, err := c.services.SearchUsers(ctx, query, authUserID)
+	if err != nil {
+		c.log.Error("controller: search users failed", "error", err.Error())
+		return e.JSON(http.StatusInternalServerError, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: utility.ErrInternalError,
+		})
+	}
+
+	return e.JSON(http.StatusOK, users)
+}
+
+// SearchFriends handles GET /friends/search?q=query
+func (c *Controller) SearchFriends(e echo.Context) error {
+	ctx := e.Request().Context()
+	authUserID := e.Get("user_id").(string)
+	if authUserID == "" {
+		return e.JSON(http.StatusUnauthorized, ErrorResponse{
+			Code:    http.StatusUnauthorized,
+			Message: utility.ErrUnauthorized,
+		})
+	}
+
+	query := e.QueryParam("q")
+	if query == "" {
+		return e.JSON(http.StatusBadRequest, ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Search query parameter 'q' is required",
+		})
+	}
+
+	friends, err := c.services.SearchFriends(ctx, query, authUserID)
+	if err != nil {
+		c.log.Error("controller: search friends failed", "error", err.Error())
+		return e.JSON(http.StatusInternalServerError, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: utility.ErrInternalError,
+		})
+	}
+
+	return e.JSON(http.StatusOK, friends)
+}

@@ -89,4 +89,8 @@ func AttachRoutes(router *echo.Group, controller *controller.Controller) {
 	router.DELETE("/friends/:friendID", controller.RemoveFriend)
 	router.GET("/friends", controller.GetFriends)
 	router.GET("/friends/requests", controller.GetPendingRequests)
+	router.GET("/friends/search", controller.SearchFriends)
+
+	// User search routes
+	router.GET("/users/search", controller.SearchUsers)
 }
