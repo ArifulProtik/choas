@@ -48,6 +48,77 @@ var (
 			},
 		},
 	}
+	// CallsColumns holds the columns for the "calls" table.
+	CallsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "call_type", Type: field.TypeEnum, Enums: []string{"voice", "video"}, Default: "voice"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "ringing", "accepted", "declined", "ended", "missed", "failed"}, Default: "pending"},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "answered_at", Type: field.TypeTime, Nullable: true},
+		{Name: "ended_at", Type: field.TypeTime, Nullable: true},
+		{Name: "duration", Type: field.TypeInt, Nullable: true},
+		{Name: "caller_id", Type: field.TypeString},
+		{Name: "callee_id", Type: field.TypeString},
+	}
+	// CallsTable holds the schema information for the "calls" table.
+	CallsTable = &schema.Table{
+		Name:       "calls",
+		Columns:    CallsColumns,
+		PrimaryKey: []*schema.Column{CallsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "calls_users_caller",
+				Columns:    []*schema.Column{CallsColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "calls_users_callee",
+				Columns:    []*schema.Column{CallsColumns[10]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "call_caller_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{CallsColumns[9], CallsColumns[1]},
+			},
+			{
+				Name:    "call_callee_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{CallsColumns[10], CallsColumns[1]},
+			},
+			{
+				Name:    "call_status",
+				Unique:  false,
+				Columns: []*schema.Column{CallsColumns[4]},
+			},
+			{
+				Name:    "call_call_type",
+				Unique:  false,
+				Columns: []*schema.Column{CallsColumns[3]},
+			},
+			{
+				Name:    "call_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{CallsColumns[1]},
+			},
+			{
+				Name:    "call_caller_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{CallsColumns[9], CallsColumns[4]},
+			},
+			{
+				Name:    "call_callee_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{CallsColumns[10], CallsColumns[4]},
+			},
+		},
+	}
 	// ConversationsColumns holds the columns for the "conversations" table.
 	ConversationsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -71,6 +142,11 @@ var (
 				Columns: []*schema.Column{ConversationsColumns[3]},
 			},
 			{
+				Name:    "conversation_type_last_message_at",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[3], ConversationsColumns[5]},
+			},
+			{
 				Name:    "conversation_last_message_at",
 				Unique:  false,
 				Columns: []*schema.Column{ConversationsColumns[5]},
@@ -79,6 +155,16 @@ var (
 				Name:    "conversation_is_archived",
 				Unique:  false,
 				Columns: []*schema.Column{ConversationsColumns[6]},
+			},
+			{
+				Name:    "conversation_is_muted",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[7]},
+			},
+			{
+				Name:    "conversation_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[1]},
 			},
 		},
 	}
@@ -89,6 +175,8 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "joined_at", Type: field.TypeTime},
 		{Name: "last_read_at", Type: field.TypeTime, Nullable: true},
+		{Name: "is_archived", Type: field.TypeBool, Default: false},
+		{Name: "is_muted", Type: field.TypeBool, Default: false},
 		{Name: "conversation_participants", Type: field.TypeString, Nullable: true},
 		{Name: "conversation_id", Type: field.TypeString},
 		{Name: "user_id", Type: field.TypeString},
@@ -101,19 +189,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "conversation_participants_conversations_participants",
-				Columns:    []*schema.Column{ConversationParticipantsColumns[5]},
+				Columns:    []*schema.Column{ConversationParticipantsColumns[7]},
 				RefColumns: []*schema.Column{ConversationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "conversation_participants_conversations_conversation",
-				Columns:    []*schema.Column{ConversationParticipantsColumns[6]},
+				Columns:    []*schema.Column{ConversationParticipantsColumns[8]},
 				RefColumns: []*schema.Column{ConversationsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "conversation_participants_users_user",
-				Columns:    []*schema.Column{ConversationParticipantsColumns[7]},
+				Columns:    []*schema.Column{ConversationParticipantsColumns[9]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -122,17 +210,47 @@ var (
 			{
 				Name:    "conversationparticipant_conversation_id_user_id",
 				Unique:  true,
-				Columns: []*schema.Column{ConversationParticipantsColumns[6], ConversationParticipantsColumns[7]},
+				Columns: []*schema.Column{ConversationParticipantsColumns[8], ConversationParticipantsColumns[9]},
 			},
 			{
 				Name:    "conversationparticipant_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{ConversationParticipantsColumns[7]},
+				Columns: []*schema.Column{ConversationParticipantsColumns[9]},
+			},
+			{
+				Name:    "conversationparticipant_user_id_is_archived",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[9], ConversationParticipantsColumns[5]},
+			},
+			{
+				Name:    "conversationparticipant_user_id_is_muted",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[9], ConversationParticipantsColumns[6]},
+			},
+			{
+				Name:    "conversationparticipant_user_id_is_archived_is_muted",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[9], ConversationParticipantsColumns[5], ConversationParticipantsColumns[6]},
 			},
 			{
 				Name:    "conversationparticipant_last_read_at",
 				Unique:  false,
 				Columns: []*schema.Column{ConversationParticipantsColumns[4]},
+			},
+			{
+				Name:    "conversationparticipant_is_archived",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[5]},
+			},
+			{
+				Name:    "conversationparticipant_is_muted",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[6]},
+			},
+			{
+				Name:    "conversationparticipant_joined_at",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationParticipantsColumns[3]},
 			},
 		},
 	}
@@ -179,6 +297,26 @@ var (
 				Name:    "friend_requester_id_status",
 				Unique:  false,
 				Columns: []*schema.Column{FriendsColumns[4], FriendsColumns[3]},
+			},
+			{
+				Name:    "friend_status",
+				Unique:  false,
+				Columns: []*schema.Column{FriendsColumns[3]},
+			},
+			{
+				Name:    "friend_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{FriendsColumns[1]},
+			},
+			{
+				Name:    "friend_addressee_id_status_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{FriendsColumns[5], FriendsColumns[3], FriendsColumns[1]},
+			},
+			{
+				Name:    "friend_requester_id_status_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{FriendsColumns[4], FriendsColumns[3], FriendsColumns[1]},
 			},
 		},
 	}
@@ -275,12 +413,13 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "content", Type: field.TypeString, Size: 2147483647},
-		{Name: "message_type", Type: field.TypeEnum, Enums: []string{"text", "image", "file"}, Default: "text"},
+		{Name: "message_type", Type: field.TypeEnum, Enums: []string{"text", "image", "file", "call_start", "call_end"}, Default: "text"},
 		{Name: "is_deleted", Type: field.TypeBool, Default: false},
 		{Name: "edited_at", Type: field.TypeTime, Nullable: true},
 		{Name: "conversation_messages", Type: field.TypeString, Nullable: true},
 		{Name: "conversation_id", Type: field.TypeString},
 		{Name: "sender_id", Type: field.TypeString},
+		{Name: "call_id", Type: field.TypeString, Nullable: true},
 	}
 	// MessagesTable holds the schema information for the "messages" table.
 	MessagesTable = &schema.Table{
@@ -306,6 +445,12 @@ var (
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
+			{
+				Symbol:     "messages_calls_call",
+				Columns:    []*schema.Column{MessagesColumns[10]},
+				RefColumns: []*schema.Column{CallsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
 		},
 		Indexes: []*schema.Index{
 			{
@@ -314,14 +459,39 @@ var (
 				Columns: []*schema.Column{MessagesColumns[8], MessagesColumns[1]},
 			},
 			{
+				Name:    "message_conversation_id_is_deleted_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[8], MessagesColumns[5], MessagesColumns[1]},
+			},
+			{
 				Name:    "message_sender_id",
 				Unique:  false,
 				Columns: []*schema.Column{MessagesColumns[9]},
 			},
 			{
+				Name:    "message_sender_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[9], MessagesColumns[1]},
+			},
+			{
 				Name:    "message_is_deleted",
 				Unique:  false,
 				Columns: []*schema.Column{MessagesColumns[5]},
+			},
+			{
+				Name:    "message_message_type",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[4]},
+			},
+			{
+				Name:    "message_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[1]},
+			},
+			{
+				Name:    "message_call_id",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[10]},
 			},
 		},
 	}
@@ -375,9 +545,39 @@ var (
 				Columns: []*schema.Column{NotificationsColumns[7], NotificationsColumns[6]},
 			},
 			{
+				Name:    "notification_user_id_is_read_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[7], NotificationsColumns[6], NotificationsColumns[1]},
+			},
+			{
 				Name:    "notification_type",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationsColumns[3]},
+			},
+			{
+				Name:    "notification_user_id_type",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[7], NotificationsColumns[3]},
+			},
+			{
+				Name:    "notification_is_read",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[6]},
+			},
+			{
+				Name:    "notification_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[1]},
+			},
+			{
+				Name:    "notification_related_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[8]},
+			},
+			{
+				Name:    "notification_related_conversation_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[9]},
 			},
 		},
 	}
@@ -423,10 +623,33 @@ var (
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "user_username",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[6]},
+			},
+			{
+				Name:    "user_email",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[4]},
+			},
+			{
+				Name:    "user_name",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[3]},
+			},
+			{
+				Name:    "user_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[1]},
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BlocksTable,
+		CallsTable,
 		ConversationsTable,
 		ConversationParticipantsTable,
 		FriendsTable,
@@ -443,6 +666,8 @@ var (
 func init() {
 	BlocksTable.ForeignKeys[0].RefTable = UsersTable
 	BlocksTable.ForeignKeys[1].RefTable = UsersTable
+	CallsTable.ForeignKeys[0].RefTable = UsersTable
+	CallsTable.ForeignKeys[1].RefTable = UsersTable
 	ConversationParticipantsTable.ForeignKeys[0].RefTable = ConversationsTable
 	ConversationParticipantsTable.ForeignKeys[1].RefTable = ConversationsTable
 	ConversationParticipantsTable.ForeignKeys[2].RefTable = UsersTable
@@ -456,6 +681,7 @@ func init() {
 	MessagesTable.ForeignKeys[0].RefTable = ConversationsTable
 	MessagesTable.ForeignKeys[1].RefTable = ConversationsTable
 	MessagesTable.ForeignKeys[2].RefTable = UsersTable
+	MessagesTable.ForeignKeys[3].RefTable = CallsTable
 	NotificationsTable.ForeignKeys[0].RefTable = UsersTable
 	NotificationsTable.ForeignKeys[1].RefTable = UsersTable
 	NotificationsTable.ForeignKeys[2].RefTable = ConversationsTable

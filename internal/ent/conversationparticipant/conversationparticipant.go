@@ -26,6 +26,10 @@ const (
 	FieldJoinedAt = "joined_at"
 	// FieldLastReadAt holds the string denoting the last_read_at field in the database.
 	FieldLastReadAt = "last_read_at"
+	// FieldIsArchived holds the string denoting the is_archived field in the database.
+	FieldIsArchived = "is_archived"
+	// FieldIsMuted holds the string denoting the is_muted field in the database.
+	FieldIsMuted = "is_muted"
 	// EdgeConversation holds the string denoting the conversation edge name in mutations.
 	EdgeConversation = "conversation"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -57,6 +61,8 @@ var Columns = []string{
 	FieldUserID,
 	FieldJoinedAt,
 	FieldLastReadAt,
+	FieldIsArchived,
+	FieldIsMuted,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "conversation_participants"
@@ -93,6 +99,10 @@ var (
 	UserIDValidator func(string) error
 	// DefaultJoinedAt holds the default value on creation for the "joined_at" field.
 	DefaultJoinedAt func() time.Time
+	// DefaultIsArchived holds the default value on creation for the "is_archived" field.
+	DefaultIsArchived bool
+	// DefaultIsMuted holds the default value on creation for the "is_muted" field.
+	DefaultIsMuted bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -133,6 +143,16 @@ func ByJoinedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByLastReadAt orders the results by the last_read_at field.
 func ByLastReadAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastReadAt, opts...).ToFunc()
+}
+
+// ByIsArchived orders the results by the is_archived field.
+func ByIsArchived(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsArchived, opts...).ToFunc()
+}
+
+// ByIsMuted orders the results by the is_muted field.
+func ByIsMuted(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsMuted, opts...).ToFunc()
 }
 
 // ByConversationField orders the results by conversation field.

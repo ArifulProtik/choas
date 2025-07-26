@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/message"
 	"kakashi/chaos/internal/ent/predicate"
@@ -140,6 +141,26 @@ func (mu *MessageUpdate) ClearEditedAt() *MessageUpdate {
 	return mu
 }
 
+// SetCallID sets the "call_id" field.
+func (mu *MessageUpdate) SetCallID(s string) *MessageUpdate {
+	mu.mutation.SetCallID(s)
+	return mu
+}
+
+// SetNillableCallID sets the "call_id" field if the given value is not nil.
+func (mu *MessageUpdate) SetNillableCallID(s *string) *MessageUpdate {
+	if s != nil {
+		mu.SetCallID(*s)
+	}
+	return mu
+}
+
+// ClearCallID clears the value of the "call_id" field.
+func (mu *MessageUpdate) ClearCallID() *MessageUpdate {
+	mu.mutation.ClearCallID()
+	return mu
+}
+
 // SetConversation sets the "conversation" edge to the Conversation entity.
 func (mu *MessageUpdate) SetConversation(c *Conversation) *MessageUpdate {
 	return mu.SetConversationID(c.ID)
@@ -148,6 +169,11 @@ func (mu *MessageUpdate) SetConversation(c *Conversation) *MessageUpdate {
 // SetSender sets the "sender" edge to the User entity.
 func (mu *MessageUpdate) SetSender(u *User) *MessageUpdate {
 	return mu.SetSenderID(u.ID)
+}
+
+// SetCall sets the "call" edge to the Call entity.
+func (mu *MessageUpdate) SetCall(c *Call) *MessageUpdate {
+	return mu.SetCallID(c.ID)
 }
 
 // Mutation returns the MessageMutation object of the builder.
@@ -164,6 +190,12 @@ func (mu *MessageUpdate) ClearConversation() *MessageUpdate {
 // ClearSender clears the "sender" edge to the User entity.
 func (mu *MessageUpdate) ClearSender() *MessageUpdate {
 	mu.mutation.ClearSender()
+	return mu
+}
+
+// ClearCall clears the "call" edge to the Call entity.
+func (mu *MessageUpdate) ClearCall() *MessageUpdate {
+	mu.mutation.ClearCall()
 	return mu
 }
 
@@ -325,6 +357,35 @@ func (mu *MessageUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if mu.mutation.CallCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   message.CallTable,
+			Columns: []string{message.CallColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := mu.mutation.CallIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   message.CallTable,
+			Columns: []string{message.CallColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, mu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{message.Label}
@@ -455,6 +516,26 @@ func (muo *MessageUpdateOne) ClearEditedAt() *MessageUpdateOne {
 	return muo
 }
 
+// SetCallID sets the "call_id" field.
+func (muo *MessageUpdateOne) SetCallID(s string) *MessageUpdateOne {
+	muo.mutation.SetCallID(s)
+	return muo
+}
+
+// SetNillableCallID sets the "call_id" field if the given value is not nil.
+func (muo *MessageUpdateOne) SetNillableCallID(s *string) *MessageUpdateOne {
+	if s != nil {
+		muo.SetCallID(*s)
+	}
+	return muo
+}
+
+// ClearCallID clears the value of the "call_id" field.
+func (muo *MessageUpdateOne) ClearCallID() *MessageUpdateOne {
+	muo.mutation.ClearCallID()
+	return muo
+}
+
 // SetConversation sets the "conversation" edge to the Conversation entity.
 func (muo *MessageUpdateOne) SetConversation(c *Conversation) *MessageUpdateOne {
 	return muo.SetConversationID(c.ID)
@@ -463,6 +544,11 @@ func (muo *MessageUpdateOne) SetConversation(c *Conversation) *MessageUpdateOne 
 // SetSender sets the "sender" edge to the User entity.
 func (muo *MessageUpdateOne) SetSender(u *User) *MessageUpdateOne {
 	return muo.SetSenderID(u.ID)
+}
+
+// SetCall sets the "call" edge to the Call entity.
+func (muo *MessageUpdateOne) SetCall(c *Call) *MessageUpdateOne {
+	return muo.SetCallID(c.ID)
 }
 
 // Mutation returns the MessageMutation object of the builder.
@@ -479,6 +565,12 @@ func (muo *MessageUpdateOne) ClearConversation() *MessageUpdateOne {
 // ClearSender clears the "sender" edge to the User entity.
 func (muo *MessageUpdateOne) ClearSender() *MessageUpdateOne {
 	muo.mutation.ClearSender()
+	return muo
+}
+
+// ClearCall clears the "call" edge to the Call entity.
+func (muo *MessageUpdateOne) ClearCall() *MessageUpdateOne {
+	muo.mutation.ClearCall()
 	return muo
 }
 
@@ -663,6 +755,35 @@ func (muo *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if muo.mutation.CallCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   message.CallTable,
+			Columns: []string{message.CallColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := muo.mutation.CallIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   message.CallTable,
+			Columns: []string{message.CallColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

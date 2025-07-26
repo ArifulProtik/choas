@@ -2,22 +2,15 @@
 
 import { FriendList } from "@/components/friends/friend-list";
 import { SearchBar } from "@/components/search";
+import UserSearch from "@/components/search/global-user-search";
 import { useAuthStore } from "@/components/store/auth-store";
 import { useMessagingStore } from "@/components/store/messaging-store";
 import { useSearchStore } from "@/components/store/search-store";
+import { useTitleBarStore } from "@/components/store/titlebar-store";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  mockBlockedUsers,
-  mockConversations,
-  mockFriendRequests,
-  mockFriendships,
-  mockMessages,
-  mockNotificationPreferences,
-  mockNotifications,
-  mockUserPresence,
-} from "@/lib/mock/messaging-data";
+// Mock data imports removed - now using real backend data
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -40,38 +33,15 @@ function HomePage() {
 
   const { addToRecentSearches } = useSearchStore();
   const router = useRouter();
+  const { setTitle } = useTitleBarStore();
 
   useEffect(() => {
     if (user) {
       // Initialize the messaging store with current user
       initialize(user.id);
 
-      // Load mock data
-      setConversations(mockConversations);
-      setFriendships(mockFriendships);
-      setFriendRequests(mockFriendRequests);
-      setNotifications(mockNotifications);
-      setNotificationPreferences(mockNotificationPreferences);
-      setBlockedUsers(mockBlockedUsers);
-
-      // Set user presence
-      const presenceMap = mockUserPresence.reduce((acc, presence) => {
-        acc[presence.user_id] = presence;
-        return acc;
-      }, {} as Record<string, any>);
-      setMultipleUserPresence(presenceMap);
-
-      // Load messages for each conversation
-      mockConversations.forEach((conversation) => {
-        const conversationMessages = mockMessages.filter(
-          (msg) => msg.conversation_id === conversation.id
-        );
-        if (conversationMessages.length > 0) {
-          setMessages(conversation.id, conversationMessages);
-          // Simulate having more messages for pagination testing
-          setHasMoreMessages(conversation.id, conversationMessages.length > 10);
-        }
-      });
+      // Data will be loaded via TanStack Query hooks in the components
+      // No more mock data initialization needed
     }
   }, [user]);
 
@@ -93,15 +63,11 @@ function HomePage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Header */}
       <div className="border-b border-border p-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Friends</h1>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Friend
-          </Button>
         </div>
       </div>
 
@@ -176,5 +142,12 @@ function HomePage() {
 }
 
 export default function Home() {
-  return <HomePage />;
+  return (
+    <div className="flex flex-1">
+      <div className="flex-1  border-r border">
+        <HomePage />
+      </div>
+      <div className="w-80">{/* <UserSearch /> */}</div>
+    </div>
+  );
 }

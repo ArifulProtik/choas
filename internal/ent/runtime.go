@@ -4,6 +4,7 @@ package ent
 
 import (
 	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/conversationparticipant"
 	"kakashi/chaos/internal/ent/friend"
@@ -49,6 +50,33 @@ func init() {
 	blockDescID := blockMixinFields0[0].Descriptor()
 	// block.DefaultID holds the default value on creation for the id field.
 	block.DefaultID = blockDescID.Default.(func() string)
+	callMixin := schema.Call{}.Mixin()
+	callMixinFields0 := callMixin[0].Fields()
+	_ = callMixinFields0
+	callFields := schema.Call{}.Fields()
+	_ = callFields
+	// callDescCreatedAt is the schema descriptor for created_at field.
+	callDescCreatedAt := callMixinFields0[1].Descriptor()
+	// call.DefaultCreatedAt holds the default value on creation for the created_at field.
+	call.DefaultCreatedAt = callDescCreatedAt.Default.(func() time.Time)
+	// callDescUpdatedAt is the schema descriptor for updated_at field.
+	callDescUpdatedAt := callMixinFields0[2].Descriptor()
+	// call.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	call.DefaultUpdatedAt = callDescUpdatedAt.Default.(func() time.Time)
+	// call.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	call.UpdateDefaultUpdatedAt = callDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// callDescCallerID is the schema descriptor for caller_id field.
+	callDescCallerID := callFields[0].Descriptor()
+	// call.CallerIDValidator is a validator for the "caller_id" field. It is called by the builders before save.
+	call.CallerIDValidator = callDescCallerID.Validators[0].(func(string) error)
+	// callDescCalleeID is the schema descriptor for callee_id field.
+	callDescCalleeID := callFields[1].Descriptor()
+	// call.CalleeIDValidator is a validator for the "callee_id" field. It is called by the builders before save.
+	call.CalleeIDValidator = callDescCalleeID.Validators[0].(func(string) error)
+	// callDescID is the schema descriptor for id field.
+	callDescID := callMixinFields0[0].Descriptor()
+	// call.DefaultID holds the default value on creation for the id field.
+	call.DefaultID = callDescID.Default.(func() string)
 	conversationMixin := schema.Conversation{}.Mixin()
 	conversationMixinFields0 := conversationMixin[0].Fields()
 	_ = conversationMixinFields0
@@ -107,6 +135,14 @@ func init() {
 	conversationparticipantDescJoinedAt := conversationparticipantFields[2].Descriptor()
 	// conversationparticipant.DefaultJoinedAt holds the default value on creation for the joined_at field.
 	conversationparticipant.DefaultJoinedAt = conversationparticipantDescJoinedAt.Default.(func() time.Time)
+	// conversationparticipantDescIsArchived is the schema descriptor for is_archived field.
+	conversationparticipantDescIsArchived := conversationparticipantFields[4].Descriptor()
+	// conversationparticipant.DefaultIsArchived holds the default value on creation for the is_archived field.
+	conversationparticipant.DefaultIsArchived = conversationparticipantDescIsArchived.Default.(bool)
+	// conversationparticipantDescIsMuted is the schema descriptor for is_muted field.
+	conversationparticipantDescIsMuted := conversationparticipantFields[5].Descriptor()
+	// conversationparticipant.DefaultIsMuted holds the default value on creation for the is_muted field.
+	conversationparticipant.DefaultIsMuted = conversationparticipantDescIsMuted.Default.(bool)
 	// conversationparticipantDescID is the schema descriptor for id field.
 	conversationparticipantDescID := conversationparticipantMixinFields0[0].Descriptor()
 	// conversationparticipant.DefaultID holds the default value on creation for the id field.

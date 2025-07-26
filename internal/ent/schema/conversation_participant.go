@@ -27,6 +27,8 @@ func (ConversationParticipant) Fields() []ent.Field {
 		field.String("user_id").NotEmpty(),
 		field.Time("joined_at").Default(time.Now),
 		field.Time("last_read_at").Optional(),
+		field.Bool("is_archived").Default(false),
+		field.Bool("is_muted").Default(false),
 	}
 }
 
@@ -43,6 +45,12 @@ func (ConversationParticipant) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("conversation_id", "user_id").Unique(),
 		index.Fields("user_id"),
+		index.Fields("user_id", "is_archived"),
+		index.Fields("user_id", "is_muted"),
+		index.Fields("user_id", "is_archived", "is_muted"),
 		index.Fields("last_read_at"),
+		index.Fields("is_archived"),
+		index.Fields("is_muted"),
+		index.Fields("joined_at"),
 	}
 }

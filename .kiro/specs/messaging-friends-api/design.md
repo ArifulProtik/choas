@@ -70,6 +70,19 @@ ConversationParticipant (junction table)
 ├── user_id (User)
 ├── joined_at
 ├── last_read_at (for unread message tracking)
+├── is_archived (user-specific)
+├── is_muted (user-specific)
+└── BaseMixin fields
+
+Call
+├── caller_id (User)
+├── callee_id (User)
+├── call_type (voice, video - for future expansion)
+├── status (pending, ringing, accepted, declined, ended, missed, failed)
+├── started_at (when call was initiated)
+├── answered_at (when call was answered, optional)
+├── ended_at (when call ended, optional)
+├── duration (calculated field in seconds, optional)
 └── BaseMixin fields
 ```
 
@@ -141,6 +154,21 @@ type BlockService interface {
 }
 ```
 
+#### CallService
+
+```go
+type CallService interface {
+    InitiateCall(ctx context.Context, callerID, calleeID string, callType string) (*ent.Call, error)
+    AcceptCall(ctx context.Context, callID, userID string) error
+    DeclineCall(ctx context.Context, callID, userID string) error
+    EndCall(ctx context.Context, callID, userID string) error
+    GetActiveCall(ctx context.Context, userID string) (*ent.Call, error)
+    GetCallHistory(ctx context.Context, userID string, limit, offset int) ([]*ent.Call, error)
+    HandleCallTimeout(ctx context.Context, callID string) error
+    CreateCallMessages(ctx context.Context, call *ent.Call) error
+}
+```
+
 ### Controller Layer Components
 
 Following the existing controller pattern with structured error responses:
@@ -181,6 +209,15 @@ Following the existing controller pattern with structured error responses:
 
 - `GET /ws` - WebSocket connection endpoint with JWT authentication
 
+#### CallController
+
+- `POST /calls` - Initiate a new voice call
+- `POST /calls/:callID/accept` - Accept an incoming call
+- `POST /calls/:callID/decline` - Decline an incoming call
+- `POST /calls/:callID/end` - End an active call
+- `GET /calls/active` - Get current active call for user
+- `GET /calls/history` - Get call history with pagination
+
 ## Data Models
 
 ### WebSocket Message Types
@@ -205,6 +242,23 @@ type FriendRequestData struct {
     Friend *ent.Friend `json:"friend"`
     User   *ent.User   `json:"user"`
 }
+
+type CallRequestData struct {
+    Call *ent.Call `json:"call"`
+}
+
+type CallResponseData struct {
+    CallID   string `json:"call_id"`
+    Response string `json:"response"` // "accepted" or "declined"
+    CallerID string `json:"caller_id"`
+    CalleeID string `json:"callee_id"`
+}
+
+type CallEndData struct {
+    CallID   string `json:"call_id"`
+    Duration int    `json:"duration,omitempty"`
+    EndedBy  string `json:"ended_by"`
+}
 ```
 
 ### Response DTOs
@@ -215,6 +269,8 @@ type ConversationWithDetails struct {
     Participants    []*ent.User `json:"participants"`
     LastMessage     *ent.Message `json:"last_message,omitempty"`
     UnreadCount     int         `json:"unread_count"`
+    IsArchived      bool        `json:"is_archived"`
+    IsMuted         bool        `json:"is_muted"`
 }
 
 type MessageSearchResult struct {
@@ -222,6 +278,13 @@ type MessageSearchResult struct {
     ConversationID   string `json:"conversation_id"`
     ConversationName string `json:"conversation_name"`
     Highlight        string `json:"highlight"`
+}
+
+type CallWithDetails struct {
+    *ent.Call
+    Caller   *ent.User `json:"caller"`
+    Callee   *ent.User `json:"callee"`
+    Duration int       `json:"duration_seconds"`
 }
 ```
 
@@ -253,6 +316,14 @@ Following the existing ErrorResponse pattern:
 
 - `404 Not Found` - Notification not found
 - `403 Forbidden` - Not authorized to access notification
+
+### Voice Calling Errors
+
+- `400 Bad Request` - Invalid call parameters, invalid callee ID
+- `403 Forbidden` - Not authorized to call user, user is blocked, not friends
+- `404 Not Found` - Call not found, user not found
+- `409 Conflict` - User already in a call, call already ended, invalid call state
+- `410 Gone` - Call expired or timed out
 
 ## Testing Strategy
 
@@ -324,6 +395,32 @@ Following the existing ErrorResponse pattern:
 3. WebSocket service broadcasts to target user if online
 4. Notification appears in user's notification list
 
+### Voice Call Flow
+
+#### Call Initiation Flow
+
+1. User initiates call via HTTP endpoint
+2. Call service validates permissions (friends only, not blocked) and creates call record
+3. WebSocket service broadcasts call_request to callee
+4. Call service starts 30-second timeout timer for call expiration
+5. Callee receives real-time call invitation notification
+
+#### Call Response Flow
+
+1. Callee accepts or declines call via HTTP endpoint
+2. Call service updates call status (accepted/declined)
+3. WebSocket service broadcasts call_response to caller
+4. If accepted, call service creates "call_start" message in conversation
+5. Frontend handles WebRTC connection establishment (client-side)
+
+#### Call Termination Flow
+
+1. Either participant ends call via HTTP endpoint
+2. Call service calculates duration and updates call status to "ended"
+3. Call service creates "call_end" message in conversation with duration
+4. WebSocket service broadcasts call_end to both participants
+5. Call appears in conversation history as system messages
+
 ## Performance Optimizations
 
 ### Database Optimizations
@@ -346,3 +443,23 @@ Following the existing ErrorResponse pattern:
 - Cache recent conversations for quick access
 - Cache friend relationships for permission checks
 - Redis for WebSocket connection tracking (future enhancement)
+- Cache active call sessions for quick lookup
+- Cache WebRTC connection states
+
+### Voice Calling Optimizations
+
+#### Call Management Optimizations
+
+- Efficient call state management with minimal database queries
+- Automatic cleanup of expired calls (30-second timeout)
+- Batch creation of call messages in conversations
+- Optimized call history queries with proper indexing
+- WebSocket connection reuse for call signaling
+
+#### Message Integration Optimizations
+
+- Efficient conversation lookup for call message creation
+- Batch processing of call start/end messages
+- Optimized message queries including call message types
+- Proper indexing for call history retrieval
+- Integration with existing message broadcasting system

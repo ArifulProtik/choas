@@ -5,6 +5,7 @@ package ent
 import (
 	"context"
 	"fmt"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/message"
 	"kakashi/chaos/internal/ent/predicate"
@@ -26,6 +27,7 @@ type MessageQuery struct {
 	predicates       []predicate.Message
 	withConversation *ConversationQuery
 	withSender       *UserQuery
+	withCall         *CallQuery
 	withFKs          bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -100,6 +102,28 @@ func (mq *MessageQuery) QuerySender() *UserQuery {
 			sqlgraph.From(message.Table, message.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, message.SenderTable, message.SenderColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(mq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCall chains the current query on the "call" edge.
+func (mq *MessageQuery) QueryCall() *CallQuery {
+	query := (&CallClient{config: mq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := mq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := mq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(message.Table, message.FieldID, selector),
+			sqlgraph.To(call.Table, call.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, message.CallTable, message.CallColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(mq.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +325,7 @@ func (mq *MessageQuery) Clone() *MessageQuery {
 		predicates:       append([]predicate.Message{}, mq.predicates...),
 		withConversation: mq.withConversation.Clone(),
 		withSender:       mq.withSender.Clone(),
+		withCall:         mq.withCall.Clone(),
 		// clone intermediate query.
 		sql:  mq.sql.Clone(),
 		path: mq.path,
@@ -326,6 +351,17 @@ func (mq *MessageQuery) WithSender(opts ...func(*UserQuery)) *MessageQuery {
 		opt(query)
 	}
 	mq.withSender = query
+	return mq
+}
+
+// WithCall tells the query-builder to eager-load the nodes that are connected to
+// the "call" edge. The optional arguments are used to configure the query builder of the edge.
+func (mq *MessageQuery) WithCall(opts ...func(*CallQuery)) *MessageQuery {
+	query := (&CallClient{config: mq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	mq.withCall = query
 	return mq
 }
 
@@ -408,9 +444,10 @@ func (mq *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 		nodes       = []*Message{}
 		withFKs     = mq.withFKs
 		_spec       = mq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			mq.withConversation != nil,
 			mq.withSender != nil,
+			mq.withCall != nil,
 		}
 	)
 	if withFKs {
@@ -443,6 +480,12 @@ func (mq *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 	if query := mq.withSender; query != nil {
 		if err := mq.loadSender(ctx, query, nodes, nil,
 			func(n *Message, e *User) { n.Edges.Sender = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := mq.withCall; query != nil {
+		if err := mq.loadCall(ctx, query, nodes, nil,
+			func(n *Message, e *Call) { n.Edges.Call = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -507,6 +550,35 @@ func (mq *MessageQuery) loadSender(ctx context.Context, query *UserQuery, nodes 
 	}
 	return nil
 }
+func (mq *MessageQuery) loadCall(ctx context.Context, query *CallQuery, nodes []*Message, init func(*Message), assign func(*Message, *Call)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Message)
+	for i := range nodes {
+		fk := nodes[i].CallID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(call.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "call_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (mq *MessageQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := mq.querySpec()
@@ -538,6 +610,9 @@ func (mq *MessageQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if mq.withSender != nil {
 			_spec.Node.AddColumnOnce(message.FieldSenderID)
+		}
+		if mq.withCall != nil {
+			_spec.Node.AddColumnOnce(message.FieldCallID)
 		}
 	}
 	if ps := mq.predicates; len(ps) > 0 {

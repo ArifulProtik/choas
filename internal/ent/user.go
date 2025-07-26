@@ -67,9 +67,13 @@ type UserEdges struct {
 	BlockedUsers []*Block `json:"blocked_users,omitempty"`
 	// BlockedByUsers holds the value of the blocked_by_users edge.
 	BlockedByUsers []*Block `json:"blocked_by_users,omitempty"`
+	// CallsMade holds the value of the calls_made edge.
+	CallsMade []*Call `json:"calls_made,omitempty"`
+	// CallsReceived holds the value of the calls_received edge.
+	CallsReceived []*Call `json:"calls_received,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [12]bool
+	loadedTypes [14]bool
 }
 
 // SessionsOrErr returns the Sessions value or an error if the edge
@@ -178,6 +182,24 @@ func (e UserEdges) BlockedByUsersOrErr() ([]*Block, error) {
 		return e.BlockedByUsers, nil
 	}
 	return nil, &NotLoadedError{edge: "blocked_by_users"}
+}
+
+// CallsMadeOrErr returns the CallsMade value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CallsMadeOrErr() ([]*Call, error) {
+	if e.loadedTypes[12] {
+		return e.CallsMade, nil
+	}
+	return nil, &NotLoadedError{edge: "calls_made"}
+}
+
+// CallsReceivedOrErr returns the CallsReceived value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CallsReceivedOrErr() ([]*Call, error) {
+	if e.loadedTypes[13] {
+		return e.CallsReceived, nil
+	}
+	return nil, &NotLoadedError{edge: "calls_received"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -335,6 +357,16 @@ func (u *User) QueryBlockedUsers() *BlockQuery {
 // QueryBlockedByUsers queries the "blocked_by_users" edge of the User entity.
 func (u *User) QueryBlockedByUsers() *BlockQuery {
 	return NewUserClient(u.config).QueryBlockedByUsers(u)
+}
+
+// QueryCallsMade queries the "calls_made" edge of the User entity.
+func (u *User) QueryCallsMade() *CallQuery {
+	return NewUserClient(u.config).QueryCallsMade(u)
+}
+
+// QueryCallsReceived queries the "calls_received" edge of the User entity.
+func (u *User) QueryCallsReceived() *CallQuery {
+	return NewUserClient(u.config).QueryCallsReceived(u)
 }
 
 // Update returns a builder for updating this User.

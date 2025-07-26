@@ -95,6 +95,16 @@ func LastReadAt(v time.Time) predicate.ConversationParticipant {
 	return predicate.ConversationParticipant(sql.FieldEQ(FieldLastReadAt, v))
 }
 
+// IsArchived applies equality check predicate on the "is_archived" field. It's identical to IsArchivedEQ.
+func IsArchived(v bool) predicate.ConversationParticipant {
+	return predicate.ConversationParticipant(sql.FieldEQ(FieldIsArchived, v))
+}
+
+// IsMuted applies equality check predicate on the "is_muted" field. It's identical to IsMutedEQ.
+func IsMuted(v bool) predicate.ConversationParticipant {
+	return predicate.ConversationParticipant(sql.FieldEQ(FieldIsMuted, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.ConversationParticipant {
 	return predicate.ConversationParticipant(sql.FieldEQ(FieldCreatedAt, v))
@@ -393,6 +403,26 @@ func LastReadAtIsNil() predicate.ConversationParticipant {
 // LastReadAtNotNil applies the NotNil predicate on the "last_read_at" field.
 func LastReadAtNotNil() predicate.ConversationParticipant {
 	return predicate.ConversationParticipant(sql.FieldNotNull(FieldLastReadAt))
+}
+
+// IsArchivedEQ applies the EQ predicate on the "is_archived" field.
+func IsArchivedEQ(v bool) predicate.ConversationParticipant {
+	return predicate.ConversationParticipant(sql.FieldEQ(FieldIsArchived, v))
+}
+
+// IsArchivedNEQ applies the NEQ predicate on the "is_archived" field.
+func IsArchivedNEQ(v bool) predicate.ConversationParticipant {
+	return predicate.ConversationParticipant(sql.FieldNEQ(FieldIsArchived, v))
+}
+
+// IsMutedEQ applies the EQ predicate on the "is_muted" field.
+func IsMutedEQ(v bool) predicate.ConversationParticipant {
+	return predicate.ConversationParticipant(sql.FieldEQ(FieldIsMuted, v))
+}
+
+// IsMutedNEQ applies the NEQ predicate on the "is_muted" field.
+func IsMutedNEQ(v bool) predicate.ConversationParticipant {
+	return predicate.ConversationParticipant(sql.FieldNEQ(FieldIsMuted, v))
 }
 
 // HasConversation applies the HasEdge predicate on the "conversation" edge.

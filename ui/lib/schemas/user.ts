@@ -5,6 +5,8 @@ export type User = {
   username: string;
   pronouns?: string;
   bio?: string;
+  is_friend?: boolean;
+  is_blocked?: boolean;
   avatar_url?: string;
   cover_url?: string;
   created_at: string;

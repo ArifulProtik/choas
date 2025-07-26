@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/conversationparticipant"
 	"kakashi/chaos/internal/ent/friend"
@@ -84,6 +85,7 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			block.Table:                   block.ValidColumn,
+			call.Table:                    call.ValidColumn,
 			conversation.Table:            conversation.ValidColumn,
 			conversationparticipant.Table: conversationparticipant.ValidColumn,
 			friend.Table:                  friend.ValidColumn,

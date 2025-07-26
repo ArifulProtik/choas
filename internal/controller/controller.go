@@ -17,6 +17,11 @@ func New(services *services.Services) *Controller {
 	}
 }
 
+// GetServices returns the services instance
+func (c *Controller) GetServices() *services.Services {
+	return c.services
+}
+
 type ErrorResponse struct {
 	Code    int         `json:"code"`
 	Message interface{} `json:"message"`

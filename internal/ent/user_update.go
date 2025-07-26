@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversationparticipant"
 	"kakashi/chaos/internal/ent/friend"
 	"kakashi/chaos/internal/ent/guild"
@@ -359,6 +360,36 @@ func (uu *UserUpdate) AddBlockedByUsers(b ...*Block) *UserUpdate {
 	return uu.AddBlockedByUserIDs(ids...)
 }
 
+// AddCallsMadeIDs adds the "calls_made" edge to the Call entity by IDs.
+func (uu *UserUpdate) AddCallsMadeIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddCallsMadeIDs(ids...)
+	return uu
+}
+
+// AddCallsMade adds the "calls_made" edges to the Call entity.
+func (uu *UserUpdate) AddCallsMade(c ...*Call) *UserUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.AddCallsMadeIDs(ids...)
+}
+
+// AddCallsReceivedIDs adds the "calls_received" edge to the Call entity by IDs.
+func (uu *UserUpdate) AddCallsReceivedIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddCallsReceivedIDs(ids...)
+	return uu
+}
+
+// AddCallsReceived adds the "calls_received" edges to the Call entity.
+func (uu *UserUpdate) AddCallsReceived(c ...*Call) *UserUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.AddCallsReceivedIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
@@ -614,6 +645,48 @@ func (uu *UserUpdate) RemoveBlockedByUsers(b ...*Block) *UserUpdate {
 		ids[i] = b[i].ID
 	}
 	return uu.RemoveBlockedByUserIDs(ids...)
+}
+
+// ClearCallsMade clears all "calls_made" edges to the Call entity.
+func (uu *UserUpdate) ClearCallsMade() *UserUpdate {
+	uu.mutation.ClearCallsMade()
+	return uu
+}
+
+// RemoveCallsMadeIDs removes the "calls_made" edge to Call entities by IDs.
+func (uu *UserUpdate) RemoveCallsMadeIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveCallsMadeIDs(ids...)
+	return uu
+}
+
+// RemoveCallsMade removes "calls_made" edges to Call entities.
+func (uu *UserUpdate) RemoveCallsMade(c ...*Call) *UserUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.RemoveCallsMadeIDs(ids...)
+}
+
+// ClearCallsReceived clears all "calls_received" edges to the Call entity.
+func (uu *UserUpdate) ClearCallsReceived() *UserUpdate {
+	uu.mutation.ClearCallsReceived()
+	return uu
+}
+
+// RemoveCallsReceivedIDs removes the "calls_received" edge to Call entities by IDs.
+func (uu *UserUpdate) RemoveCallsReceivedIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveCallsReceivedIDs(ids...)
+	return uu
+}
+
+// RemoveCallsReceived removes "calls_received" edges to Call entities.
+func (uu *UserUpdate) RemoveCallsReceived(c ...*Call) *UserUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.RemoveCallsReceivedIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1268,6 +1341,96 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if uu.mutation.CallsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsMadeTable,
+			Columns: []string{user.CallsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedCallsMadeIDs(); len(nodes) > 0 && !uu.mutation.CallsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsMadeTable,
+			Columns: []string{user.CallsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.CallsMadeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsMadeTable,
+			Columns: []string{user.CallsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.CallsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsReceivedTable,
+			Columns: []string{user.CallsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedCallsReceivedIDs(); len(nodes) > 0 && !uu.mutation.CallsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsReceivedTable,
+			Columns: []string{user.CallsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.CallsReceivedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsReceivedTable,
+			Columns: []string{user.CallsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -1610,6 +1773,36 @@ func (uuo *UserUpdateOne) AddBlockedByUsers(b ...*Block) *UserUpdateOne {
 	return uuo.AddBlockedByUserIDs(ids...)
 }
 
+// AddCallsMadeIDs adds the "calls_made" edge to the Call entity by IDs.
+func (uuo *UserUpdateOne) AddCallsMadeIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddCallsMadeIDs(ids...)
+	return uuo
+}
+
+// AddCallsMade adds the "calls_made" edges to the Call entity.
+func (uuo *UserUpdateOne) AddCallsMade(c ...*Call) *UserUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.AddCallsMadeIDs(ids...)
+}
+
+// AddCallsReceivedIDs adds the "calls_received" edge to the Call entity by IDs.
+func (uuo *UserUpdateOne) AddCallsReceivedIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddCallsReceivedIDs(ids...)
+	return uuo
+}
+
+// AddCallsReceived adds the "calls_received" edges to the Call entity.
+func (uuo *UserUpdateOne) AddCallsReceived(c ...*Call) *UserUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.AddCallsReceivedIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
@@ -1865,6 +2058,48 @@ func (uuo *UserUpdateOne) RemoveBlockedByUsers(b ...*Block) *UserUpdateOne {
 		ids[i] = b[i].ID
 	}
 	return uuo.RemoveBlockedByUserIDs(ids...)
+}
+
+// ClearCallsMade clears all "calls_made" edges to the Call entity.
+func (uuo *UserUpdateOne) ClearCallsMade() *UserUpdateOne {
+	uuo.mutation.ClearCallsMade()
+	return uuo
+}
+
+// RemoveCallsMadeIDs removes the "calls_made" edge to Call entities by IDs.
+func (uuo *UserUpdateOne) RemoveCallsMadeIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveCallsMadeIDs(ids...)
+	return uuo
+}
+
+// RemoveCallsMade removes "calls_made" edges to Call entities.
+func (uuo *UserUpdateOne) RemoveCallsMade(c ...*Call) *UserUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.RemoveCallsMadeIDs(ids...)
+}
+
+// ClearCallsReceived clears all "calls_received" edges to the Call entity.
+func (uuo *UserUpdateOne) ClearCallsReceived() *UserUpdateOne {
+	uuo.mutation.ClearCallsReceived()
+	return uuo
+}
+
+// RemoveCallsReceivedIDs removes the "calls_received" edge to Call entities by IDs.
+func (uuo *UserUpdateOne) RemoveCallsReceivedIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveCallsReceivedIDs(ids...)
+	return uuo
+}
+
+// RemoveCallsReceived removes "calls_received" edges to Call entities.
+func (uuo *UserUpdateOne) RemoveCallsReceived(c ...*Call) *UserUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.RemoveCallsReceivedIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -2542,6 +2777,96 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(block.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.CallsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsMadeTable,
+			Columns: []string{user.CallsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedCallsMadeIDs(); len(nodes) > 0 && !uuo.mutation.CallsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsMadeTable,
+			Columns: []string{user.CallsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.CallsMadeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsMadeTable,
+			Columns: []string{user.CallsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.CallsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsReceivedTable,
+			Columns: []string{user.CallsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedCallsReceivedIDs(); len(nodes) > 0 && !uuo.mutation.CallsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsReceivedTable,
+			Columns: []string{user.CallsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.CallsReceivedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsReceivedTable,
+			Columns: []string{user.CallsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -12,6 +12,7 @@ import {
   InAppNotification,
   NotificationPreferences,
   WSMessage,
+  MessageType,
 } from "@/lib/schemas/messaging";
 import { User } from "@/lib/schemas/user";
 import {
@@ -25,6 +26,7 @@ import {
   canSendMessage,
   canInitiateCall,
 } from "@/lib/utils/messaging-utils";
+import { isWebSocketMessageDuplicate } from "@/lib/utils/websocket-deduplication";
 
 // Store state interfaces
 interface ConversationState {
@@ -197,7 +199,7 @@ interface MessagingState
   startConversation: (userId: string) => Promise<string | null>;
 
   // WebSocket message handler
-  handleWebSocketMessage: (message: WSMessage) => void;
+  handleWebSocketMessage: (message: any) => void;
 
   // Initialization
   initialize: (currentUserId: string) => void;
@@ -684,12 +686,8 @@ export const useMessagingStore = create<MessagingState>()(
       set({ blockingUser: true });
       try {
         // TODO: Implement API call to block user
-        // const response = await api.blockUser(userId);
-
-        // For now, simulate the API call
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Add to blocked users list (mock data)
         const blockedUser: BlockedUser = {
           id: `blocked-${userId}-${Date.now()}`,
           blocked_user: {
@@ -705,9 +703,8 @@ export const useMessagingStore = create<MessagingState>()(
 
         // Remove any conversations with this user
         set((state) => ({
-          conversations: state.conversations.filter(
-            (conv) =>
-              conv.participant1.id !== userId && conv.participant2.id !== userId
+          conversations: state.conversations.filter((conv) =>
+            conv.participants.every((p) => p.id !== userId)
           ),
         }));
       } catch (error) {
@@ -722,11 +719,7 @@ export const useMessagingStore = create<MessagingState>()(
       set({ unblockingUser: true });
       try {
         // TODO: Implement API call to unblock user
-        // const response = await api.unblockUser(userId);
-
-        // For now, simulate the API call
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
         get().removeBlockedUser(userId);
       } catch (error) {
         console.error("Failed to unblock user:", error);
@@ -867,363 +860,315 @@ export const useMessagingStore = create<MessagingState>()(
       // Check if conversation already exists
       const existingConversation = state.conversations.find(
         (conv) =>
-          (conv.participant1.id === state.currentUserId &&
-            conv.participant2.id === userId) ||
-          (conv.participant1.id === userId &&
-            conv.participant2.id === state.currentUserId)
+          conv.participants.some((p) => p.id === state.currentUserId) &&
+          conv.participants.some((p) => p.id === userId)
       );
 
       if (existingConversation) {
-        // Set as active conversation
         get().setActiveConversation(existingConversation.id);
         return existingConversation.id;
       }
-
-      try {
-        // TODO: Implement API call to create conversation
-        // const response = await api.createConversation(userId);
-
-        // For now, create a mock conversation
-        const newConversation: Conversation = {
-          id: `conv-${state.currentUserId}-${userId}-${Date.now()}`,
-          participant1: {
-            id: state.currentUserId,
-            name: "Current User",
-            username: "current_user",
-            email: "current@example.com",
-          },
-          participant2: {
-            id: userId,
-            name: "Other User",
-            username: "other_user",
-            email: "other@example.com",
-          },
-          last_message: null,
-          last_message_at: new Date().toISOString(),
-          unread_count: 0,
-          is_archived: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        get().addConversation(newConversation);
-        get().setActiveConversation(newConversation.id);
-        return newConversation.id;
-      } catch (error) {
-        console.error("Failed to start conversation:", error);
-        return null;
-      }
+      return null;
     },
 
-    // WebSocket message handler
+    // WebSocket message handler - matches backend message formats exactly
     handleWebSocketMessage: (message) => {
       const state = get();
 
+      // Ensure message has required structure matching backend WSMessage
+      if (!message.type || !message.data) {
+        console.warn("Invalid WebSocket message format:", message);
+        return;
+      }
+
+      const timestamp = message.timestamp || new Date().toISOString();
+
+      // Check for duplicate messages using backend message ID and timestamp patterns
+      if (isWebSocketMessageDuplicate(message.type, message.data, timestamp)) {
+        console.log(
+          "Duplicate WebSocket message detected, skipping:",
+          message.type
+        );
+        return;
+      }
+
       switch (message.type) {
         case "message":
-          if (message.payload?.message) {
-            get().addMessage(message.payload.message);
+          // Handle new message matching backend MessageData structure
+          if (
+            message.data.message_id &&
+            message.data.conversation_id &&
+            message.data.content &&
+            message.data.sender_id
+          ) {
+            const newMessage: Message = {
+              id: message.data.message_id,
+              conversation_id: message.data.conversation_id,
+              sender_id: message.data.sender_id,
+              sender: {
+                id: message.data.sender_id,
+                name: message.data.sender_username || "Unknown User",
+                username: message.data.sender_username || "unknown",
+                email: "", // Not provided in WebSocket message
+                created_at: timestamp,
+                updated_at: timestamp,
+              },
+              content: message.data.content,
+              message_type:
+                (message.data.message_type as MessageType) || "text",
+              status: "delivered", // WebSocket messages are delivered
+              is_deleted: false,
+              created_at: message.data.created_at || timestamp,
+              updated_at: message.data.created_at || timestamp,
+            };
+
+            // Prevent duplicate messages using message ID and timestamp
+            const existingMessages =
+              state.messagesByConversation[newMessage.conversation_id] || [];
+            const isDuplicate = existingMessages.some(
+              (msg) =>
+                msg.id === newMessage.id ||
+                (msg.content === newMessage.content &&
+                  msg.sender_id === newMessage.sender_id &&
+                  Math.abs(
+                    new Date(msg.created_at).getTime() -
+                      new Date(newMessage.created_at).getTime()
+                  ) < 1000)
+            );
+
+            if (!isDuplicate) {
+              get().addMessage(newMessage);
+            }
           }
           break;
 
-        case "typing_start":
-          if (message.payload?.conversation_id && message.payload?.user_id) {
+        case "friend_request":
+          // Handle friend request matching backend FriendRequestData structure
+          if (message.data.requester_id && message.data.requester_username) {
+            const friendRequest: FriendRequest = {
+              id: `friend_req_${message.data.requester_id}_${timestamp}`,
+              requester: {
+                id: message.data.requester_id,
+                name: message.data.requester_username,
+                username: message.data.requester_username,
+                email: "", // Not provided in WebSocket message
+                created_at: timestamp,
+                updated_at: timestamp,
+              },
+              recipient: {
+                id: state.currentUserId || "",
+                name: "Current User", // Would be populated from auth store
+                username: "current_user",
+                email: "",
+                created_at: timestamp,
+                updated_at: timestamp,
+              },
+              status: "pending",
+              created_at: timestamp,
+              updated_at: timestamp,
+            };
+
+            // Prevent duplicate friend requests
+            const existingRequest = state.friendRequests.find(
+              (req) => req.requester.id === message.data.requester_id
+            );
+            if (!existingRequest) {
+              get().addFriendRequest(friendRequest);
+            }
+          }
+          break;
+
+        case "friend_accepted":
+          // Handle friend request accepted matching backend FriendRequestData structure
+          if (message.data.requester_id && message.data.requester_username) {
+            // Find and update the sent friend request
+            const sentRequest = state.sentFriendRequests.find(
+              (req) => req.recipient.id === message.data.requester_id
+            );
+            if (sentRequest) {
+              get().updateFriendRequest(sentRequest.id, {
+                status: "accepted",
+                responded_at: timestamp,
+              });
+
+              // Create friendship
+              const friendship: Friendship = {
+                id: `friendship_${state.currentUserId}_${message.data.requester_id}`,
+                user1: {
+                  id: state.currentUserId || "",
+                  name: "Current User",
+                  username: "current_user",
+                  email: "",
+                  created_at: timestamp,
+                  updated_at: timestamp,
+                },
+                user2: {
+                  id: message.data.requester_id,
+                  name: message.data.requester_username,
+                  username: message.data.requester_username,
+                  email: "",
+                  created_at: timestamp,
+                  updated_at: timestamp,
+                },
+                status: "accepted",
+                created_at: timestamp,
+                updated_at: timestamp,
+              };
+
+              get().addFriendship(friendship);
+            }
+          }
+          break;
+
+        case "user_online":
+          // Handle user online status matching backend UserStatusData structure
+          if (message.data.user_id) {
+            get().setUserPresence(message.data.user_id, {
+              user_id: message.data.user_id,
+              status: "online",
+              last_seen_at: timestamp,
+              updated_at: timestamp,
+            });
+            get().setUserOnline(message.data.user_id, true);
+          }
+          break;
+
+        case "user_offline":
+          // Handle user offline status matching backend UserStatusData structure
+          if (message.data.user_id) {
+            get().setUserPresence(message.data.user_id, {
+              user_id: message.data.user_id,
+              status: "offline",
+              last_seen_at: timestamp,
+              updated_at: timestamp,
+            });
+            get().setUserOnline(message.data.user_id, false);
+          }
+          break;
+
+        case "typing":
+          // Handle typing indicator matching backend TypingData structure
+          if (message.data.conversation_id && message.data.user_id) {
             get().addTypingUser(
-              message.payload.conversation_id,
-              message.payload.user_id
+              message.data.conversation_id,
+              message.data.user_id
             );
           }
           break;
 
-        case "typing_stop":
-          if (message.payload?.conversation_id && message.payload?.user_id) {
+        case "stop_typing":
+          // Handle stop typing indicator matching backend TypingData structure
+          if (message.data.conversation_id && message.data.user_id) {
             get().removeTypingUser(
-              message.payload.conversation_id,
-              message.payload.user_id
+              message.data.conversation_id,
+              message.data.user_id
             );
           }
           break;
 
-        case "presence_update":
-          if (message.payload?.user_id && message.payload?.status) {
-            get().setUserPresence(message.payload.user_id, {
-              user_id: message.payload.user_id,
-              status: message.payload.status,
-              last_seen_at:
-                message.payload.last_seen_at || new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+        case "message_read":
+          // Handle message read status matching backend MessageReadData structure
+          if (
+            message.data.conversation_id &&
+            message.data.user_id &&
+            message.data.last_read_at
+          ) {
+            // Update read status for messages sent by current user
+            const messages = get().getConversationMessages(
+              message.data.conversation_id
+            );
+            const messagesToUpdate = messages
+              .filter(
+                (msg) =>
+                  msg.sender_id === state.currentUserId &&
+                  new Date(msg.created_at) <=
+                    new Date(message.data.last_read_at)
+              )
+              .map((msg) => msg.id);
+
+            messagesToUpdate.forEach((msgId) => {
+              get().updateMessage(msgId, {
+                status: "read" as const,
+                read_at: message.data.last_read_at,
+              });
             });
           }
           break;
 
         case "friend_request":
-          if (message.payload?.friend_request) {
-            get().addFriendRequest(message.payload.friend_request);
+          // Handle friend request matching backend FriendRequestData structure
+          if (message.data.requester_id && message.data.requester_username) {
+            const friendRequest: FriendRequest = {
+              id: `req-${message.data.requester_id}-${timestamp}`,
+              requester: {
+                id: message.data.requester_id,
+                name: message.data.requester_username,
+                username: message.data.requester_username,
+                email: "", // Not provided in WebSocket message
+              },
+              recipient: {
+                id: state.currentUserId || "",
+                name: "Current User",
+                username: "current_user",
+                email: "",
+              },
+              status: "pending",
+              created_at: timestamp,
+              updated_at: timestamp,
+            };
+
+            // Prevent duplicate friend requests
+            const existingRequest = state.friendRequests.find(
+              (req) =>
+                req.requester.id === friendRequest.requester.id &&
+                req.status === "pending"
+            );
+
+            if (!existingRequest) {
+              get().addFriendRequest(friendRequest);
+            }
           }
           break;
 
-        case "friend_request_accepted":
-          if (message.payload?.friend_request_id) {
-            get().updateFriendRequest(message.payload.friend_request_id, {
-              status: "accepted",
-              responded_at: new Date().toISOString(),
-            });
+        case "friend_accepted":
+          // Handle friend request acceptance matching backend patterns
+          if (message.data.requester_id && message.data.requester_username) {
+            // Update existing friend request status
+            const existingRequest = state.friendRequests.find(
+              (req) =>
+                req.requester.id === message.data.requester_id &&
+                req.status === "pending"
+            );
+
+            if (existingRequest) {
+              get().updateFriendRequest(existingRequest.id, {
+                status: "accepted",
+                responded_at: timestamp,
+              });
+
+              // Add friendship
+              const friendship: Friendship = {
+                id: `friendship-${message.data.requester_id}-${state.currentUserId}`,
+                user1: existingRequest.requester,
+                user2: existingRequest.recipient,
+                created_at: timestamp,
+                updated_at: timestamp,
+              };
+
+              get().addFriendship(friendship);
+            }
           }
           break;
 
-        case "friend_request_declined":
-          if (message.payload?.friend_request_id) {
-            get().removeFriendRequest(message.payload.friend_request_id);
-          }
-          break;
-
-        case "message_read":
-          if (message.payload?.conversation_id) {
-            get().markMessagesAsRead(message.payload.conversation_id);
-          }
-          break;
+        default:
+          console.warn("Unhandled WebSocket message type:", message.type);
       }
     },
 
     // Initialization
     initialize: (currentUserId) => {
       set({ currentUserId });
-
-      // Load mock data for development
-      const mockConversations: Conversation[] = [
-        {
-          id: "conv_1",
-          participant1: {
-            id: currentUserId,
-            name: "You",
-            username: "you",
-            email: "you@example.com",
-          },
-          participant2: {
-            id: "2",
-            name: "Bob Johnson",
-            username: "bob_johnson",
-            email: "bob@example.com",
-            avatar_url: undefined,
-          },
-          last_message: {
-            id: "msg_1",
-            conversation_id: "conv_1",
-            sender: {
-              id: "2",
-              name: "Bob Johnson",
-              username: "bob_johnson",
-              email: "bob@example.com",
-            },
-            content: "I'm doing well! Are you free for a quick call later?",
-            message_type: "text",
-            status: "delivered",
-            created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          },
-          last_message_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          unread_count: 1,
-          is_archived: false,
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "conv_2",
-          participant1: {
-            id: currentUserId,
-            name: "You",
-            username: "you",
-            email: "you@example.com",
-          },
-          participant2: {
-            id: "3",
-            name: "Alice Smith",
-            username: "alice_smith",
-            email: "alice@example.com",
-            avatar_url: undefined,
-          },
-          last_message: {
-            id: "msg_2",
-            conversation_id: "conv_2",
-            sender: {
-              id: currentUserId,
-              name: "You",
-              username: "you",
-              email: "you@example.com",
-            },
-            content: "Thanks for the help with the project!",
-            message_type: "text",
-            status: "read",
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          },
-          last_message_at: new Date(
-            Date.now() - 2 * 60 * 60 * 1000
-          ).toISOString(),
-          unread_count: 0,
-          is_archived: false,
-          created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "conv_3",
-          participant1: {
-            id: currentUserId,
-            name: "You",
-            username: "you",
-            email: "you@example.com",
-          },
-          participant2: {
-            id: "4",
-            name: "Diana Prince",
-            username: "diana_prince",
-            email: "diana@example.com",
-            avatar_url: undefined,
-          },
-          last_message: {
-            id: "msg_3",
-            conversation_id: "conv_3",
-            sender: {
-              id: "4",
-              name: "Diana Prince",
-              username: "diana_prince",
-              email: "diana@example.com",
-            },
-            content: "Let's catch up soon!",
-            message_type: "text",
-            status: "delivered",
-            created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          },
-          last_message_at: new Date(
-            Date.now() - 6 * 60 * 60 * 1000
-          ).toISOString(),
-          unread_count: 2,
-          is_archived: false,
-          created_at: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
-
-      // Load mock messages for conversations
-      const mockMessages: Record<string, Message[]> = {
-        conv_1: [
-          {
-            id: "msg_1_1",
-            conversation_id: "conv_1",
-            sender: {
-              id: currentUserId,
-              name: "You",
-              username: "you",
-              email: "you@example.com",
-            },
-            content: "Hey Bob! How are you doing?",
-            message_type: "text",
-            status: "read",
-            created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "msg_1_2",
-            conversation_id: "conv_1",
-            sender: {
-              id: "2",
-              name: "Bob Johnson",
-              username: "bob_johnson",
-              email: "bob@example.com",
-            },
-            content: "I'm doing well! Are you free for a quick call later?",
-            message_type: "text",
-            status: "delivered",
-            created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          },
-        ],
-        conv_2: [
-          {
-            id: "msg_2_1",
-            conversation_id: "conv_2",
-            sender: {
-              id: "3",
-              name: "Alice Smith",
-              username: "alice_smith",
-              email: "alice@example.com",
-            },
-            content: "The project looks great! Nice work on the UI.",
-            message_type: "text",
-            status: "read",
-            created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "msg_2_2",
-            conversation_id: "conv_2",
-            sender: {
-              id: currentUserId,
-              name: "You",
-              username: "you",
-              email: "you@example.com",
-            },
-            content: "Thanks for the help with the project!",
-            message_type: "text",
-            status: "read",
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          },
-        ],
-        conv_3: [
-          {
-            id: "msg_3_1",
-            conversation_id: "conv_3",
-            sender: {
-              id: "4",
-              name: "Diana Prince",
-              username: "diana_prince",
-              email: "diana@example.com",
-            },
-            content: "Hey! It's been a while.",
-            message_type: "text",
-            status: "delivered",
-            created_at: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "msg_3_2",
-            conversation_id: "conv_3",
-            sender: {
-              id: "4",
-              name: "Diana Prince",
-              username: "diana_prince",
-              email: "diana@example.com",
-            },
-            content: "Let's catch up soon!",
-            message_type: "text",
-            status: "delivered",
-            created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          },
-        ],
-      };
-
-      // Load mock user presence
-      const mockPresence: Record<string, UserPresence> = {
-        "2": {
-          user_id: "2",
-          status: "online",
-          last_seen_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        "3": {
-          user_id: "3",
-          status: "offline",
-          last_seen_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        },
-        "4": {
-          user_id: "4",
-          status: "online",
-          last_seen_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      };
-
-      // Set the mock data
-      get().setConversations(mockConversations);
-      Object.entries(mockMessages).forEach(([conversationId, messages]) => {
-        get().setMessages(conversationId, messages);
-      });
-      get().setMultipleUserPresence(mockPresence);
+      // Real data will be loaded via API calls and WebSocket integration
     },
 
     reset: () => set(initialState),

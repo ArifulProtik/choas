@@ -4,6 +4,7 @@ package ent
 
 import (
 	"fmt"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/message"
 	"kakashi/chaos/internal/ent/user"
@@ -35,6 +36,8 @@ type Message struct {
 	IsDeleted bool `json:"is_deleted,omitempty"`
 	// EditedAt holds the value of the "edited_at" field.
 	EditedAt time.Time `json:"edited_at,omitempty"`
+	// Reference to call for call_start and call_end messages
+	CallID string `json:"call_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the MessageQuery when eager-loading is set.
 	Edges                 MessageEdges `json:"edges"`
@@ -48,9 +51,11 @@ type MessageEdges struct {
 	Conversation *Conversation `json:"conversation,omitempty"`
 	// Sender holds the value of the sender edge.
 	Sender *User `json:"sender,omitempty"`
+	// Call holds the value of the call edge.
+	Call *Call `json:"call,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ConversationOrErr returns the Conversation value or an error if the edge
@@ -75,6 +80,17 @@ func (e MessageEdges) SenderOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "sender"}
 }
 
+// CallOrErr returns the Call value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e MessageEdges) CallOrErr() (*Call, error) {
+	if e.Call != nil {
+		return e.Call, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: call.Label}
+	}
+	return nil, &NotLoadedError{edge: "call"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Message) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -82,7 +98,7 @@ func (*Message) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case message.FieldIsDeleted:
 			values[i] = new(sql.NullBool)
-		case message.FieldID, message.FieldConversationID, message.FieldSenderID, message.FieldContent, message.FieldMessageType:
+		case message.FieldID, message.FieldConversationID, message.FieldSenderID, message.FieldContent, message.FieldMessageType, message.FieldCallID:
 			values[i] = new(sql.NullString)
 		case message.FieldCreatedAt, message.FieldUpdatedAt, message.FieldEditedAt:
 			values[i] = new(sql.NullTime)
@@ -157,6 +173,12 @@ func (m *Message) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				m.EditedAt = value.Time
 			}
+		case message.FieldCallID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field call_id", values[i])
+			} else if value.Valid {
+				m.CallID = value.String
+			}
 		case message.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field conversation_messages", values[i])
@@ -185,6 +207,11 @@ func (m *Message) QueryConversation() *ConversationQuery {
 // QuerySender queries the "sender" edge of the Message entity.
 func (m *Message) QuerySender() *UserQuery {
 	return NewMessageClient(m.config).QuerySender(m)
+}
+
+// QueryCall queries the "call" edge of the Message entity.
+func (m *Message) QueryCall() *CallQuery {
+	return NewMessageClient(m.config).QueryCall(m)
 }
 
 // Update returns a builder for updating this Message.
@@ -233,6 +260,9 @@ func (m *Message) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("edited_at=")
 	builder.WriteString(m.EditedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("call_id=")
+	builder.WriteString(m.CallID)
 	builder.WriteByte(')')
 	return builder.String()
 }

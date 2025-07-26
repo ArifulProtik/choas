@@ -14,6 +14,8 @@ import {
   useNotificationStore,
   Notification,
 } from "@/components/store/notification-store";
+import { useCallStore } from "@/components/store/call-store";
+import { isWebSocketMessageDuplicate } from "@/lib/utils/websocket-deduplication";
 
 export interface WebSocketServiceConfig extends Omit<WebSocketConfig, "token"> {
   // Service-specific configuration can be added here
@@ -110,6 +112,35 @@ export class WebSocketService {
     console.log("Received WebSocket message:", message.type, message.payload);
 
     try {
+      // Transform message to match backend WSMessage format exactly
+      const backendMessage = {
+        type: message.type,
+        data: message.payload,
+        timestamp: message.timestamp || new Date().toISOString(),
+      };
+
+      // Check for duplicate messages at the service level
+      if (
+        isWebSocketMessageDuplicate(
+          backendMessage.type,
+          backendMessage.data,
+          backendMessage.timestamp
+        )
+      ) {
+        console.log(
+          "Duplicate WebSocket message detected at service level, skipping:",
+          backendMessage.type
+        );
+        return;
+      }
+
+      // Route message to all store handlers for proper integration
+      // Each store will handle only the message types it cares about
+      useMessagingStore.getState().handleWebSocketMessage(backendMessage);
+      useNotificationStore.getState().handleWebSocketMessage(backendMessage);
+      useCallStore.getState().handleWebSocketMessage(backendMessage);
+
+      // Legacy handlers for backward compatibility (can be removed later)
       switch (message.type) {
         case "message":
           this.handleNewMessage(message);

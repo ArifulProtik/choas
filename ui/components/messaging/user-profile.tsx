@@ -23,9 +23,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
 
   const userPresence = getUserPresence(user.id);
 
-  // Mock data for Discord-style features
-  const mutualFriendsCount = 9;
-  const mutualServersCount = 2;
+  // TODO: Replace with actual mutual friends data from backend
+  const mutualFriendsCount = 0; // Will be populated from backend
+  const mutualServersCount = 0; // Servers not used in private messaging app
 
   const getInitials = (name: string) => {
     return name

@@ -7,6 +7,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversationparticipant"
 	"kakashi/chaos/internal/ent/friend"
 	"kakashi/chaos/internal/ent/guild"
@@ -44,6 +45,8 @@ type UserQuery struct {
 	withConversationParticipations *ConversationParticipantQuery
 	withBlockedUsers               *BlockQuery
 	withBlockedByUsers             *BlockQuery
+	withCallsMade                  *CallQuery
+	withCallsReceived              *CallQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -344,6 +347,50 @@ func (uq *UserQuery) QueryBlockedByUsers() *BlockQuery {
 	return query
 }
 
+// QueryCallsMade chains the current query on the "calls_made" edge.
+func (uq *UserQuery) QueryCallsMade() *CallQuery {
+	query := (&CallClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(call.Table, call.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.CallsMadeTable, user.CallsMadeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCallsReceived chains the current query on the "calls_received" edge.
+func (uq *UserQuery) QueryCallsReceived() *CallQuery {
+	query := (&CallClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(call.Table, call.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.CallsReceivedTable, user.CallsReceivedColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first User entity from the query.
 // Returns a *NotFoundError when no User was found.
 func (uq *UserQuery) First(ctx context.Context) (*User, error) {
@@ -548,6 +595,8 @@ func (uq *UserQuery) Clone() *UserQuery {
 		withConversationParticipations: uq.withConversationParticipations.Clone(),
 		withBlockedUsers:               uq.withBlockedUsers.Clone(),
 		withBlockedByUsers:             uq.withBlockedByUsers.Clone(),
+		withCallsMade:                  uq.withCallsMade.Clone(),
+		withCallsReceived:              uq.withCallsReceived.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
@@ -686,6 +735,28 @@ func (uq *UserQuery) WithBlockedByUsers(opts ...func(*BlockQuery)) *UserQuery {
 	return uq
 }
 
+// WithCallsMade tells the query-builder to eager-load the nodes that are connected to
+// the "calls_made" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithCallsMade(opts ...func(*CallQuery)) *UserQuery {
+	query := (&CallClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withCallsMade = query
+	return uq
+}
+
+// WithCallsReceived tells the query-builder to eager-load the nodes that are connected to
+// the "calls_received" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithCallsReceived(opts ...func(*CallQuery)) *UserQuery {
+	query := (&CallClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withCallsReceived = query
+	return uq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -764,7 +835,7 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [12]bool{
+		loadedTypes = [14]bool{
 			uq.withSessions != nil,
 			uq.withOwnedGuilds != nil,
 			uq.withInvitations != nil,
@@ -777,6 +848,8 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			uq.withConversationParticipations != nil,
 			uq.withBlockedUsers != nil,
 			uq.withBlockedByUsers != nil,
+			uq.withCallsMade != nil,
+			uq.withCallsReceived != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -880,6 +953,20 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadBlockedByUsers(ctx, query, nodes,
 			func(n *User) { n.Edges.BlockedByUsers = []*Block{} },
 			func(n *User, e *Block) { n.Edges.BlockedByUsers = append(n.Edges.BlockedByUsers, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withCallsMade; query != nil {
+		if err := uq.loadCallsMade(ctx, query, nodes,
+			func(n *User) { n.Edges.CallsMade = []*Call{} },
+			func(n *User, e *Call) { n.Edges.CallsMade = append(n.Edges.CallsMade, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withCallsReceived; query != nil {
+		if err := uq.loadCallsReceived(ctx, query, nodes,
+			func(n *User) { n.Edges.CallsReceived = []*Call{} },
+			func(n *User, e *Call) { n.Edges.CallsReceived = append(n.Edges.CallsReceived, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -1247,6 +1334,66 @@ func (uq *UserQuery) loadBlockedByUsers(ctx context.Context, query *BlockQuery, 
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "blocked_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadCallsMade(ctx context.Context, query *CallQuery, nodes []*User, init func(*User), assign func(*User, *Call)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(call.FieldCallerID)
+	}
+	query.Where(predicate.Call(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.CallsMadeColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CallerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "caller_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadCallsReceived(ctx context.Context, query *CallQuery, nodes []*User, init func(*User), assign func(*User, *Call)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(call.FieldCalleeID)
+	}
+	query.Where(predicate.Call(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.CallsReceivedColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CalleeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "callee_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

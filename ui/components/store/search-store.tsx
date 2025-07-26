@@ -68,48 +68,9 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     set({ isSearching: true });
 
     try {
-      // Mock API call - replace with actual API
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Mock search results
-      const mockResults: SearchResult[] = [
-        {
-          id: "1",
-          name: "John Doe",
-          username: "johndoe",
-          email: "john@example.com",
-          avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
-          isFriend: false,
-          hasConversation: false,
-          isBlocked: false,
-        },
-        {
-          id: "2",
-          name: "Jane Smith",
-          username: "janesmith",
-          email: "jane@example.com",
-          avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane",
-          isFriend: true,
-          hasConversation: true,
-          isBlocked: false,
-        },
-        {
-          id: "3",
-          name: "Bob Wilson",
-          username: "bobwilson",
-          email: "bob@example.com",
-          avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=bob",
-          isFriend: false,
-          hasConversation: false,
-          isBlocked: false,
-        },
-      ].filter(
-        (user) =>
-          user.name.toLowerCase().includes(query.toLowerCase()) ||
-          user.username.toLowerCase().includes(query.toLowerCase())
-      );
-
-      set({ results: mockResults, isSearching: false });
+      // TODO: Replace with actual API call using useUserSearch hook
+      // For now, return empty results until backend integration is complete
+      set({ results: [], isSearching: false });
     } catch (error) {
       console.error("Search failed:", error);
       set({ results: [], isSearching: false });
@@ -125,40 +86,9 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     set({ isLoadingSuggestions: true });
 
     try {
-      // Mock API call for suggestions
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      // Mock suggestions (subset of search results)
-      const mockSuggestions: SearchResult[] = [
-        {
-          id: "1",
-          name: "John Doe",
-          username: "johndoe",
-          email: "john@example.com",
-          avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
-          isFriend: false,
-          hasConversation: false,
-          isBlocked: false,
-        },
-        {
-          id: "2",
-          name: "Jane Smith",
-          username: "janesmith",
-          email: "jane@example.com",
-          avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane",
-          isFriend: true,
-          hasConversation: true,
-          isBlocked: false,
-        },
-      ]
-        .filter(
-          (user) =>
-            user.name.toLowerCase().includes(query.toLowerCase()) ||
-            user.username.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 5); // Limit suggestions
-
-      set({ suggestions: mockSuggestions, isLoadingSuggestions: false });
+      // TODO: Replace with actual API call for suggestions
+      // For now, return empty suggestions until backend integration is complete
+      set({ suggestions: [], isLoadingSuggestions: false });
     } catch (error) {
       console.error("Suggestions failed:", error);
       set({ suggestions: [], isLoadingSuggestions: false });

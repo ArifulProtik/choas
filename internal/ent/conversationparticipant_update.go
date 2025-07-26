@@ -112,6 +112,34 @@ func (cpu *ConversationParticipantUpdate) ClearLastReadAt() *ConversationPartici
 	return cpu
 }
 
+// SetIsArchived sets the "is_archived" field.
+func (cpu *ConversationParticipantUpdate) SetIsArchived(b bool) *ConversationParticipantUpdate {
+	cpu.mutation.SetIsArchived(b)
+	return cpu
+}
+
+// SetNillableIsArchived sets the "is_archived" field if the given value is not nil.
+func (cpu *ConversationParticipantUpdate) SetNillableIsArchived(b *bool) *ConversationParticipantUpdate {
+	if b != nil {
+		cpu.SetIsArchived(*b)
+	}
+	return cpu
+}
+
+// SetIsMuted sets the "is_muted" field.
+func (cpu *ConversationParticipantUpdate) SetIsMuted(b bool) *ConversationParticipantUpdate {
+	cpu.mutation.SetIsMuted(b)
+	return cpu
+}
+
+// SetNillableIsMuted sets the "is_muted" field if the given value is not nil.
+func (cpu *ConversationParticipantUpdate) SetNillableIsMuted(b *bool) *ConversationParticipantUpdate {
+	if b != nil {
+		cpu.SetIsMuted(*b)
+	}
+	return cpu
+}
+
 // SetConversation sets the "conversation" edge to the Conversation entity.
 func (cpu *ConversationParticipantUpdate) SetConversation(c *Conversation) *ConversationParticipantUpdate {
 	return cpu.SetConversationID(c.ID)
@@ -222,6 +250,12 @@ func (cpu *ConversationParticipantUpdate) sqlSave(ctx context.Context) (n int, e
 	}
 	if cpu.mutation.LastReadAtCleared() {
 		_spec.ClearField(conversationparticipant.FieldLastReadAt, field.TypeTime)
+	}
+	if value, ok := cpu.mutation.IsArchived(); ok {
+		_spec.SetField(conversationparticipant.FieldIsArchived, field.TypeBool, value)
+	}
+	if value, ok := cpu.mutation.IsMuted(); ok {
+		_spec.SetField(conversationparticipant.FieldIsMuted, field.TypeBool, value)
 	}
 	if cpu.mutation.ConversationCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -383,6 +417,34 @@ func (cpuo *ConversationParticipantUpdateOne) ClearLastReadAt() *ConversationPar
 	return cpuo
 }
 
+// SetIsArchived sets the "is_archived" field.
+func (cpuo *ConversationParticipantUpdateOne) SetIsArchived(b bool) *ConversationParticipantUpdateOne {
+	cpuo.mutation.SetIsArchived(b)
+	return cpuo
+}
+
+// SetNillableIsArchived sets the "is_archived" field if the given value is not nil.
+func (cpuo *ConversationParticipantUpdateOne) SetNillableIsArchived(b *bool) *ConversationParticipantUpdateOne {
+	if b != nil {
+		cpuo.SetIsArchived(*b)
+	}
+	return cpuo
+}
+
+// SetIsMuted sets the "is_muted" field.
+func (cpuo *ConversationParticipantUpdateOne) SetIsMuted(b bool) *ConversationParticipantUpdateOne {
+	cpuo.mutation.SetIsMuted(b)
+	return cpuo
+}
+
+// SetNillableIsMuted sets the "is_muted" field if the given value is not nil.
+func (cpuo *ConversationParticipantUpdateOne) SetNillableIsMuted(b *bool) *ConversationParticipantUpdateOne {
+	if b != nil {
+		cpuo.SetIsMuted(*b)
+	}
+	return cpuo
+}
+
 // SetConversation sets the "conversation" edge to the Conversation entity.
 func (cpuo *ConversationParticipantUpdateOne) SetConversation(c *Conversation) *ConversationParticipantUpdateOne {
 	return cpuo.SetConversationID(c.ID)
@@ -523,6 +585,12 @@ func (cpuo *ConversationParticipantUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if cpuo.mutation.LastReadAtCleared() {
 		_spec.ClearField(conversationparticipant.FieldLastReadAt, field.TypeTime)
+	}
+	if value, ok := cpuo.mutation.IsArchived(); ok {
+		_spec.SetField(conversationparticipant.FieldIsArchived, field.TypeBool, value)
+	}
+	if value, ok := cpuo.mutation.IsMuted(); ok {
+		_spec.SetField(conversationparticipant.FieldIsMuted, field.TypeBool, value)
 	}
 	if cpuo.mutation.ConversationCleared() {
 		edge := &sqlgraph.EdgeSpec{

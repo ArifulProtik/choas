@@ -41,7 +41,10 @@ func (Conversation) Edges() []ent.Edge {
 func (Conversation) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("type"),
+		index.Fields("type", "last_message_at"),
 		index.Fields("last_message_at"),
 		index.Fields("is_archived"),
+		index.Fields("is_muted"),
+		index.Fields("created_at"),
 	}
 }

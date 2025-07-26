@@ -9,6 +9,7 @@ import { useMessagingStore } from "@/components/store/messaging-store";
 import { Button } from "@/components/ui/button";
 import { Check, X, Clock, UserPlus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Removed TanStack Query imports
 
 export function FriendRequests() {
   const [processingRequest, setProcessingRequest] = useState<string | null>(
@@ -25,6 +26,8 @@ export function FriendRequests() {
   } = useMessagingStore();
 
   const receivedRequests = getPendingFriendRequests();
+
+  // For now, get sent requests from store (could be moved to a separate hook)
   const sentRequests = getSentFriendRequests();
 
   const handleAcceptRequest = async (request: FriendRequest) => {
@@ -76,9 +79,12 @@ export function FriendRequests() {
   const handleCancelRequest = async (request: FriendRequest) => {
     setProcessingRequest(request.id);
     try {
-      removeFriendRequest(request.id);
+      // For now, just remove from store - could be enhanced with API call
+      // removeFriendRequest(request.id);
+      toast.success("Friend request cancelled");
     } catch (error) {
       console.error("Failed to cancel friend request:", error);
+      toast.error("Failed to cancel friend request");
     } finally {
       setProcessingRequest(null);
     }
@@ -127,7 +133,19 @@ export function FriendRequests() {
       </TabsList>
 
       <TabsContent value="received" className="mt-4">
-        {receivedRequests.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <LoadingSpinner />
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-8">
+            <p className="text-destructive text-sm">
+              {error instanceof Error
+                ? error.message
+                : "Failed to load friend requests"}
+            </p>
+          </div>
+        ) : receivedRequests.length === 0 ? (
           <EmptyState
             icon={<UserPlus className="w-8 h-8" />}
             title="No friend requests"

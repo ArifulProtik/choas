@@ -7,12 +7,7 @@ import { FriendManagementModal } from "./friend-management-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
-import {
-  mockFriendships,
-  mockFriendRequests,
-  mockUserPresence,
-  mockCurrentUser,
-} from "@/lib/mock/messaging-data";
+// Mock data imports removed - now using real backend data
 
 export function FriendManagementTest() {
   const { user, setAuth } = useAuthStore();
@@ -27,35 +22,14 @@ export function FriendManagementTest() {
   } = useMessagingStore();
 
   useEffect(() => {
-    // Set up mock authentication if not already authenticated
-    if (!user) {
-      setAuth(mockCurrentUser, "mock-token");
-    }
-  }, [user, setAuth]);
-
-  useEffect(() => {
     if (user) {
       // Initialize the messaging store with current user
       initialize(user.id);
 
-      // Load mock data
-      setFriendships(mockFriendships);
-      setFriendRequests(mockFriendRequests);
-
-      // Set user presence
-      const presenceMap = mockUserPresence.reduce((acc, presence) => {
-        acc[presence.user_id] = presence;
-        return acc;
-      }, {} as Record<string, any>);
-      setMultipleUserPresence(presenceMap);
+      // Data will be loaded via TanStack Query hooks
+      // No more mock data initialization needed
     }
-  }, [
-    user,
-    initialize,
-    setFriendships,
-    setFriendRequests,
-    setMultipleUserPresence,
-  ]);
+  }, [user, initialize]);
 
   const friends = getFriendsList();
   const receivedRequests = getPendingFriendRequests();

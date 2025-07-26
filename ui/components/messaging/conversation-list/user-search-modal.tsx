@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { FriendManagementModal } from "@/components/friends/friend-management-modal";
-import { mockUsers } from "@/lib/mock/messaging-data";
+// Mock users import removed - now using real backend data via search hooks
 import { SendFriendRequest } from "@/components/friends/send-friend-request";
 
 export interface UserSearchModalProps {
@@ -29,8 +29,8 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
 
   const friends = getFriendsList();
 
-  // For demo purposes, show all mock users in search results
-  const allUsers = mockUsers.filter((user) => user.id !== currentUserId);
+  // TODO: Replace with actual user search using useUserSearch hook
+  const allUsers: any[] = []; // Will be populated by search hook
 
   const filteredResults = useMemo(() => {
     if (!searchQuery.trim()) return { friends, allUsers: [] };

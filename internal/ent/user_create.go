@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversationparticipant"
 	"kakashi/chaos/internal/ent/friend"
 	"kakashi/chaos/internal/ent/guild"
@@ -323,6 +324,36 @@ func (uc *UserCreate) AddBlockedByUsers(b ...*Block) *UserCreate {
 		ids[i] = b[i].ID
 	}
 	return uc.AddBlockedByUserIDs(ids...)
+}
+
+// AddCallsMadeIDs adds the "calls_made" edge to the Call entity by IDs.
+func (uc *UserCreate) AddCallsMadeIDs(ids ...string) *UserCreate {
+	uc.mutation.AddCallsMadeIDs(ids...)
+	return uc
+}
+
+// AddCallsMade adds the "calls_made" edges to the Call entity.
+func (uc *UserCreate) AddCallsMade(c ...*Call) *UserCreate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uc.AddCallsMadeIDs(ids...)
+}
+
+// AddCallsReceivedIDs adds the "calls_received" edge to the Call entity by IDs.
+func (uc *UserCreate) AddCallsReceivedIDs(ids ...string) *UserCreate {
+	uc.mutation.AddCallsReceivedIDs(ids...)
+	return uc
+}
+
+// AddCallsReceived adds the "calls_received" edges to the Call entity.
+func (uc *UserCreate) AddCallsReceived(c ...*Call) *UserCreate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uc.AddCallsReceivedIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -667,6 +698,38 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(block.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.CallsMadeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsMadeTable,
+			Columns: []string{user.CallsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.CallsReceivedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.CallsReceivedTable,
+			Columns: []string{user.CallsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

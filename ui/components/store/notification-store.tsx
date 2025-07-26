@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { isWebSocketMessageDuplicate } from "@/lib/utils/websocket-deduplication";
 
 // Notification types based on the design document
 export type NotificationType = "message" | "friend_request" | "call" | "system";
@@ -45,6 +46,10 @@ interface NotificationState {
   getUnreadNotifications: () => Notification[];
   getNotificationsByType: (type: NotificationType) => Notification[];
   getUnreadCountByType: (type: NotificationType) => number;
+
+  // WebSocket integration
+  handleWebSocketMessage: (message: any) => void;
+  getCurrentUserId: () => string | null;
 
   // Initialization
   initialize: () => void;
@@ -169,53 +174,281 @@ export const useNotificationStore = create<NotificationState>()(
         .length;
     },
 
+    // WebSocket message handler - matches backend notification patterns
+    handleWebSocketMessage: (message: any) => {
+      if (!message.type || !message.data) {
+        console.warn("Invalid WebSocket notification message format:", message);
+        return;
+      }
+
+      const timestamp = message.timestamp || new Date().toISOString();
+
+      // Check for duplicate messages using backend message ID and timestamp patterns
+      if (isWebSocketMessageDuplicate(message.type, message.data, timestamp)) {
+        console.log(
+          "Duplicate WebSocket notification message detected, skipping:",
+          message.type
+        );
+        return;
+      }
+
+      switch (message.type) {
+        case "notification":
+          // Handle direct notification matching backend NotificationData structure
+          if (
+            message.data.notification_id &&
+            message.data.type &&
+            message.data.title
+          ) {
+            const notification: Notification = {
+              id: message.data.notification_id,
+              user_id: message.data.user_id || get().getCurrentUserId() || "",
+              type: message.data.type as NotificationType,
+              title: message.data.title,
+              content: message.data.content || "",
+              related_id: message.data.related_user_id,
+              is_read: false,
+              created_at: timestamp,
+            };
+
+            // Prevent duplicate notifications using notification ID and timestamp
+            const existingNotification = get().notifications.find(
+              (n) =>
+                n.id === notification.id ||
+                (n.type === notification.type &&
+                  n.related_id === notification.related_id &&
+                  Math.abs(
+                    new Date(n.created_at).getTime() -
+                      new Date(notification.created_at).getTime()
+                  ) < 5000)
+            );
+            if (!existingNotification) {
+              get().addNotification(notification);
+            }
+          }
+          break;
+
+        case "message":
+          // Create message notification from WebSocket message data matching backend MessageData
+          if (
+            message.data.message_id &&
+            message.data.sender_id &&
+            message.data.sender_username &&
+            message.data.conversation_id
+          ) {
+            const currentUserId = get().getCurrentUserId();
+
+            // Only create notification if message is not from current user
+            if (message.data.sender_id !== currentUserId && currentUserId) {
+              const notification: Notification = {
+                id: `msg_notif_${message.data.message_id}`,
+                user_id: currentUserId,
+                type: "message",
+                title: `New message from ${message.data.sender_username}`,
+                content: message.data.content || "New message",
+                related_id: message.data.conversation_id,
+                is_read: false,
+                created_at: message.data.created_at || timestamp,
+              };
+
+              // Prevent duplicate message notifications using message ID
+              const existingNotification = get().notifications.find(
+                (n) => n.id === notification.id
+              );
+              if (!existingNotification) {
+                get().addNotification(notification);
+              }
+            }
+          }
+          break;
+
+        case "friend_request":
+          // Create friend request notification from WebSocket data matching backend FriendRequestData
+          if (message.data.requester_id && message.data.requester_username) {
+            const currentUserId = get().getCurrentUserId();
+
+            if (currentUserId) {
+              const notification: Notification = {
+                id: `friend_req_notif_${
+                  message.data.requester_id
+                }_${Date.now()}`,
+                user_id: currentUserId,
+                type: "friend_request",
+                title: `Friend request from ${message.data.requester_username}`,
+                content: `${message.data.requester_username} wants to be your friend`,
+                related_id: message.data.requester_id,
+                is_read: false,
+                created_at: timestamp,
+              };
+
+              // Prevent duplicate friend request notifications
+              const existingNotification = get().notifications.find(
+                (n) =>
+                  n.type === "friend_request" &&
+                  n.related_id === message.data.requester_id &&
+                  Math.abs(new Date(n.created_at).getTime() - Date.now()) <
+                    60000 // Within 1 minute
+              );
+              if (!existingNotification) {
+                get().addNotification(notification);
+              }
+            }
+          }
+          break;
+
+        case "friend_accepted":
+          // Create friend accepted notification from WebSocket data
+          if (message.data.requester_username) {
+            const currentUserId = get().getCurrentUserId();
+
+            if (currentUserId) {
+              const notification: Notification = {
+                id: `friend_accepted_notif_${Date.now()}`,
+                user_id: currentUserId,
+                type: "friend_request",
+                title: "Friend request accepted",
+                content: `${message.data.requester_username} accepted your friend request`,
+                related_id: message.data.requester_id,
+                is_read: false,
+                created_at: timestamp,
+              };
+
+              get().addNotification(notification);
+            }
+          }
+          break;
+
+        case "call_request":
+          // Create call notification from WebSocket call request data matching backend CallRequestData
+          if (
+            message.data.call_id &&
+            message.data.caller_id &&
+            message.data.callee_id
+          ) {
+            const currentUserId = get().getCurrentUserId();
+
+            // Only create notification if call is for current user
+            if (message.data.callee_id === currentUserId && currentUserId) {
+              const notification: Notification = {
+                id: `call_notif_${message.data.call_id}`,
+                user_id: currentUserId,
+                type: "call",
+                title: "Incoming call",
+                content: `Incoming ${message.data.call_type || "voice"} call`,
+                related_id: message.data.call_id,
+                is_read: false,
+                created_at: timestamp,
+              };
+
+              // Prevent duplicate call notifications
+              const existingNotification = get().notifications.find(
+                (n) => n.id === notification.id
+              );
+              if (!existingNotification) {
+                get().addNotification(notification);
+              }
+            }
+          }
+          break;
+
+        case "call_response":
+          // Create call response notification from WebSocket data matching backend CallResponseData
+          if (
+            message.data.call_id &&
+            message.data.response &&
+            message.data.caller_id
+          ) {
+            const currentUserId = get().getCurrentUserId();
+
+            // Only create notification if current user is the caller
+            if (message.data.caller_id === currentUserId && currentUserId) {
+              const notification: Notification = {
+                id: `call_response_notif_${message.data.call_id}`,
+                user_id: currentUserId,
+                type: "call",
+                title: `Call ${message.data.response}`,
+                content:
+                  message.data.response === "accepted"
+                    ? "Call was accepted"
+                    : "Call was declined",
+                related_id: message.data.call_id,
+                is_read: false,
+                created_at: timestamp,
+              };
+
+              get().addNotification(notification);
+            }
+          }
+          break;
+
+        case "call_end":
+          // Create call end notification from WebSocket call end data matching backend CallEndData
+          if (message.data.call_id) {
+            const currentUserId = get().getCurrentUserId();
+
+            if (
+              currentUserId &&
+              (message.data.caller_id === currentUserId ||
+                message.data.callee_id === currentUserId)
+            ) {
+              const durationText =
+                message.data.duration && message.data.duration > 0
+                  ? `Call duration: ${Math.floor(
+                      message.data.duration / 60
+                    )}:${(message.data.duration % 60)
+                      .toString()
+                      .padStart(2, "0")}`
+                  : "Call ended";
+
+              const notification: Notification = {
+                id: `call_end_notif_${message.data.call_id}`,
+                user_id: currentUserId,
+                type: "call",
+                title: "Call ended",
+                content: durationText,
+                related_id: message.data.call_id,
+                is_read: false,
+                created_at: timestamp,
+              };
+
+              // Prevent duplicate call end notifications
+              const existingNotification = get().notifications.find(
+                (n) => n.id === notification.id
+              );
+              if (!existingNotification) {
+                get().addNotification(notification);
+              }
+            }
+          }
+          break;
+
+        default:
+          // Log unhandled message types for debugging
+          console.log(
+            "Unhandled WebSocket message type in NotificationStore:",
+            message.type
+          );
+          break;
+      }
+    },
+
+    // Helper method to get current user ID from auth system
+    getCurrentUserId: () => {
+      // Import auth store dynamically to avoid circular dependencies
+      try {
+        const { useAuthStore } = require("@/components/store/auth-store");
+        return useAuthStore.getState().user?.id || null;
+      } catch (error) {
+        // Fallback if auth store is not available
+        console.warn("Could not access auth store for current user ID");
+        return null;
+      }
+    },
+
     // Initialization
     initialize: () => {
-      // Load initial notifications from mock data or API
-      const mockNotifications: Notification[] = [
-        {
-          id: "notif_1",
-          user_id: "1",
-          type: "message",
-          title: "New message from Bob",
-          content: "I'm doing well! Are you free for a quick call later?",
-          related_id: "conv_1",
-          is_read: false,
-          created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-        },
-        {
-          id: "notif_2",
-          user_id: "1",
-          type: "friend_request",
-          title: "Friend request from Frank Miller",
-          content: "Frank Miller wants to be your friend",
-          related_id: "7",
-          is_read: false,
-          created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-        },
-        {
-          id: "notif_3",
-          user_id: "1",
-          type: "call",
-          title: "Missed call from Diana",
-          content: "You missed a voice call",
-          related_id: "call_2",
-          is_read: true,
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        },
-        {
-          id: "notif_4",
-          user_id: "1",
-          type: "system",
-          title: "Welcome to Private Messaging",
-          content:
-            "You can now send private messages and make voice calls with other users",
-          is_read: true,
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-        },
-      ];
-
-      get().setNotifications(mockNotifications);
+      // Notifications will be loaded via TanStack Query hooks
+      // No more mock data initialization needed
     },
 
     reset: () => set(initialState),

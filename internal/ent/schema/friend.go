@@ -41,5 +41,9 @@ func (Friend) Indexes() []ent.Index {
 		index.Fields("requester_id", "addressee_id").Unique(),
 		index.Fields("addressee_id", "status"),
 		index.Fields("requester_id", "status"),
+		index.Fields("status"),
+		index.Fields("created_at"),
+		index.Fields("addressee_id", "status", "created_at"),
+		index.Fields("requester_id", "status", "created_at"),
 	}
 }

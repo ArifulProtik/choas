@@ -90,6 +90,34 @@ func (cpc *ConversationParticipantCreate) SetNillableLastReadAt(t *time.Time) *C
 	return cpc
 }
 
+// SetIsArchived sets the "is_archived" field.
+func (cpc *ConversationParticipantCreate) SetIsArchived(b bool) *ConversationParticipantCreate {
+	cpc.mutation.SetIsArchived(b)
+	return cpc
+}
+
+// SetNillableIsArchived sets the "is_archived" field if the given value is not nil.
+func (cpc *ConversationParticipantCreate) SetNillableIsArchived(b *bool) *ConversationParticipantCreate {
+	if b != nil {
+		cpc.SetIsArchived(*b)
+	}
+	return cpc
+}
+
+// SetIsMuted sets the "is_muted" field.
+func (cpc *ConversationParticipantCreate) SetIsMuted(b bool) *ConversationParticipantCreate {
+	cpc.mutation.SetIsMuted(b)
+	return cpc
+}
+
+// SetNillableIsMuted sets the "is_muted" field if the given value is not nil.
+func (cpc *ConversationParticipantCreate) SetNillableIsMuted(b *bool) *ConversationParticipantCreate {
+	if b != nil {
+		cpc.SetIsMuted(*b)
+	}
+	return cpc
+}
+
 // SetID sets the "id" field.
 func (cpc *ConversationParticipantCreate) SetID(s string) *ConversationParticipantCreate {
 	cpc.mutation.SetID(s)
@@ -161,6 +189,14 @@ func (cpc *ConversationParticipantCreate) defaults() {
 		v := conversationparticipant.DefaultJoinedAt()
 		cpc.mutation.SetJoinedAt(v)
 	}
+	if _, ok := cpc.mutation.IsArchived(); !ok {
+		v := conversationparticipant.DefaultIsArchived
+		cpc.mutation.SetIsArchived(v)
+	}
+	if _, ok := cpc.mutation.IsMuted(); !ok {
+		v := conversationparticipant.DefaultIsMuted
+		cpc.mutation.SetIsMuted(v)
+	}
 	if _, ok := cpc.mutation.ID(); !ok {
 		v := conversationparticipant.DefaultID()
 		cpc.mutation.SetID(v)
@@ -193,6 +229,12 @@ func (cpc *ConversationParticipantCreate) check() error {
 	}
 	if _, ok := cpc.mutation.JoinedAt(); !ok {
 		return &ValidationError{Name: "joined_at", err: errors.New(`ent: missing required field "ConversationParticipant.joined_at"`)}
+	}
+	if _, ok := cpc.mutation.IsArchived(); !ok {
+		return &ValidationError{Name: "is_archived", err: errors.New(`ent: missing required field "ConversationParticipant.is_archived"`)}
+	}
+	if _, ok := cpc.mutation.IsMuted(); !ok {
+		return &ValidationError{Name: "is_muted", err: errors.New(`ent: missing required field "ConversationParticipant.is_muted"`)}
 	}
 	if len(cpc.mutation.ConversationIDs()) == 0 {
 		return &ValidationError{Name: "conversation", err: errors.New(`ent: missing required edge "ConversationParticipant.conversation"`)}
@@ -250,6 +292,14 @@ func (cpc *ConversationParticipantCreate) createSpec() (*ConversationParticipant
 	if value, ok := cpc.mutation.LastReadAt(); ok {
 		_spec.SetField(conversationparticipant.FieldLastReadAt, field.TypeTime, value)
 		_node.LastReadAt = value
+	}
+	if value, ok := cpc.mutation.IsArchived(); ok {
+		_spec.SetField(conversationparticipant.FieldIsArchived, field.TypeBool, value)
+		_node.IsArchived = value
+	}
+	if value, ok := cpc.mutation.IsMuted(); ok {
+		_spec.SetField(conversationparticipant.FieldIsMuted, field.TypeBool, value)
+		_node.IsMuted = value
 	}
 	if nodes := cpc.mutation.ConversationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

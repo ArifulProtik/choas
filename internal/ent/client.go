@@ -12,6 +12,7 @@ import (
 	"kakashi/chaos/internal/ent/migrate"
 
 	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/conversationparticipant"
 	"kakashi/chaos/internal/ent/friend"
@@ -36,6 +37,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Block is the client for interacting with the Block builders.
 	Block *BlockClient
+	// Call is the client for interacting with the Call builders.
+	Call *CallClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationParticipant is the client for interacting with the ConversationParticipant builders.
@@ -68,6 +71,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Block = NewBlockClient(c.config)
+	c.Call = NewCallClient(c.config)
 	c.Conversation = NewConversationClient(c.config)
 	c.ConversationParticipant = NewConversationParticipantClient(c.config)
 	c.Friend = NewFriendClient(c.config)
@@ -171,6 +175,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                     ctx,
 		config:                  cfg,
 		Block:                   NewBlockClient(cfg),
+		Call:                    NewCallClient(cfg),
 		Conversation:            NewConversationClient(cfg),
 		ConversationParticipant: NewConversationParticipantClient(cfg),
 		Friend:                  NewFriendClient(cfg),
@@ -201,6 +206,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                     ctx,
 		config:                  cfg,
 		Block:                   NewBlockClient(cfg),
+		Call:                    NewCallClient(cfg),
 		Conversation:            NewConversationClient(cfg),
 		ConversationParticipant: NewConversationParticipantClient(cfg),
 		Friend:                  NewFriendClient(cfg),
@@ -240,7 +246,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Block, c.Conversation, c.ConversationParticipant, c.Friend, c.Guild,
+		c.Block, c.Call, c.Conversation, c.ConversationParticipant, c.Friend, c.Guild,
 		c.Invitation, c.Member, c.Message, c.Notification, c.Session, c.User,
 	} {
 		n.Use(hooks...)
@@ -251,7 +257,7 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Block, c.Conversation, c.ConversationParticipant, c.Friend, c.Guild,
+		c.Block, c.Call, c.Conversation, c.ConversationParticipant, c.Friend, c.Guild,
 		c.Invitation, c.Member, c.Message, c.Notification, c.Session, c.User,
 	} {
 		n.Intercept(interceptors...)
@@ -263,6 +269,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *BlockMutation:
 		return c.Block.mutate(ctx, m)
+	case *CallMutation:
+		return c.Call.mutate(ctx, m)
 	case *ConversationMutation:
 		return c.Conversation.mutate(ctx, m)
 	case *ConversationParticipantMutation:
@@ -450,6 +458,171 @@ func (c *BlockClient) mutate(ctx context.Context, m *BlockMutation) (Value, erro
 		return (&BlockDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Block mutation op: %q", m.Op())
+	}
+}
+
+// CallClient is a client for the Call schema.
+type CallClient struct {
+	config
+}
+
+// NewCallClient returns a client for the Call from the given config.
+func NewCallClient(c config) *CallClient {
+	return &CallClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `call.Hooks(f(g(h())))`.
+func (c *CallClient) Use(hooks ...Hook) {
+	c.hooks.Call = append(c.hooks.Call, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `call.Intercept(f(g(h())))`.
+func (c *CallClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Call = append(c.inters.Call, interceptors...)
+}
+
+// Create returns a builder for creating a Call entity.
+func (c *CallClient) Create() *CallCreate {
+	mutation := newCallMutation(c.config, OpCreate)
+	return &CallCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Call entities.
+func (c *CallClient) CreateBulk(builders ...*CallCreate) *CallCreateBulk {
+	return &CallCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CallClient) MapCreateBulk(slice any, setFunc func(*CallCreate, int)) *CallCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CallCreateBulk{err: fmt.Errorf("calling to CallClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CallCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CallCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Call.
+func (c *CallClient) Update() *CallUpdate {
+	mutation := newCallMutation(c.config, OpUpdate)
+	return &CallUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CallClient) UpdateOne(ca *Call) *CallUpdateOne {
+	mutation := newCallMutation(c.config, OpUpdateOne, withCall(ca))
+	return &CallUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CallClient) UpdateOneID(id string) *CallUpdateOne {
+	mutation := newCallMutation(c.config, OpUpdateOne, withCallID(id))
+	return &CallUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Call.
+func (c *CallClient) Delete() *CallDelete {
+	mutation := newCallMutation(c.config, OpDelete)
+	return &CallDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CallClient) DeleteOne(ca *Call) *CallDeleteOne {
+	return c.DeleteOneID(ca.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CallClient) DeleteOneID(id string) *CallDeleteOne {
+	builder := c.Delete().Where(call.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CallDeleteOne{builder}
+}
+
+// Query returns a query builder for Call.
+func (c *CallClient) Query() *CallQuery {
+	return &CallQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCall},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Call entity by its id.
+func (c *CallClient) Get(ctx context.Context, id string) (*Call, error) {
+	return c.Query().Where(call.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CallClient) GetX(ctx context.Context, id string) *Call {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCaller queries the caller edge of a Call.
+func (c *CallClient) QueryCaller(ca *Call) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(call.Table, call.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, call.CallerTable, call.CallerColumn),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCallee queries the callee edge of a Call.
+func (c *CallClient) QueryCallee(ca *Call) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(call.Table, call.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, call.CalleeTable, call.CalleeColumn),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CallClient) Hooks() []Hook {
+	return c.hooks.Call
+}
+
+// Interceptors returns the client interceptors.
+func (c *CallClient) Interceptors() []Interceptor {
+	return c.inters.Call
+}
+
+func (c *CallClient) mutate(ctx context.Context, m *CallMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CallCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CallUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CallUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CallDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Call mutation op: %q", m.Op())
 	}
 }
 
@@ -1599,6 +1772,22 @@ func (c *MessageClient) QuerySender(m *Message) *UserQuery {
 	return query
 }
 
+// QueryCall queries the call edge of a Message.
+func (c *MessageClient) QueryCall(m *Message) *CallQuery {
+	query := (&CallClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(message.Table, message.FieldID, id),
+			sqlgraph.To(call.Table, call.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, message.CallTable, message.CallColumn),
+		)
+		fromV = sqlgraph.Neighbors(m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *MessageClient) Hooks() []Hook {
 	return c.hooks.Message
@@ -2254,6 +2443,38 @@ func (c *UserClient) QueryBlockedByUsers(u *User) *BlockQuery {
 	return query
 }
 
+// QueryCallsMade queries the calls_made edge of a User.
+func (c *UserClient) QueryCallsMade(u *User) *CallQuery {
+	query := (&CallClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(call.Table, call.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.CallsMadeTable, user.CallsMadeColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCallsReceived queries the calls_received edge of a User.
+func (c *UserClient) QueryCallsReceived(u *User) *CallQuery {
+	query := (&CallClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(call.Table, call.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.CallsReceivedTable, user.CallsReceivedColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -2282,11 +2503,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Block, Conversation, ConversationParticipant, Friend, Guild, Invitation, Member,
-		Message, Notification, Session, User []ent.Hook
+		Block, Call, Conversation, ConversationParticipant, Friend, Guild, Invitation,
+		Member, Message, Notification, Session, User []ent.Hook
 	}
 	inters struct {
-		Block, Conversation, ConversationParticipant, Friend, Guild, Invitation, Member,
-		Message, Notification, Session, User []ent.Interceptor
+		Block, Call, Conversation, ConversationParticipant, Friend, Guild, Invitation,
+		Member, Message, Notification, Session, User []ent.Interceptor
 	}
 )

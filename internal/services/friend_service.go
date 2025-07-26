@@ -70,11 +70,35 @@ func (s *Services) SendFriendRequest(ctx context.Context, requesterID, addressee
 		return fmt.Errorf("failed to create friend request: %w", err)
 	}
 
+	// Create notification for the addressee
+	_, err = s.CreateFriendRequestNotification(ctx, addresseeID, requesterID)
+	if err != nil {
+		// Log error but don't fail the friend request creation
+		fmt.Printf("Failed to create friend request notification: %v\n", err)
+	}
+
+	// Send real-time notification if WebSocket hub is available
+	if s.WSHub != nil {
+		requester, err := s.ent.User.Query().Where(user.IDEQ(requesterID)).First(ctx)
+		if err == nil {
+			s.BroadcastFriendRequestNotification(addresseeID, requesterID, requester.Username)
+		}
+	}
+
 	return nil
 }
 
 // AcceptFriendRequest accepts a pending friend request
 func (s *Services) AcceptFriendRequest(ctx context.Context, requesterID, addresseeID string) error {
+	// Check if users are blocked
+	isBlocked, err := s.IsBlocked(ctx, requesterID, addresseeID)
+	if err != nil {
+		return fmt.Errorf("failed to check block status: %w", err)
+	}
+	if isBlocked {
+		return fmt.Errorf("cannot accept friend request from blocked user")
+	}
+
 	// Find the pending friend request
 	friendRequest, err := s.ent.Friend.Query().
 		Where(
@@ -98,6 +122,21 @@ func (s *Services) AcceptFriendRequest(ctx context.Context, requesterID, address
 
 	if err != nil {
 		return fmt.Errorf("failed to accept friend request: %w", err)
+	}
+
+	// Create notification for the requester
+	_, err = s.CreateFriendAcceptedNotification(ctx, requesterID, addresseeID)
+	if err != nil {
+		// Log error but don't fail the acceptance
+		fmt.Printf("Failed to create friend accepted notification: %v\n", err)
+	}
+
+	// Send real-time notification if WebSocket hub is available
+	if s.WSHub != nil {
+		addressee, err := s.ent.User.Query().Where(user.IDEQ(addresseeID)).First(ctx)
+		if err == nil {
+			s.BroadcastFriendAcceptedNotification(requesterID, addresseeID, addressee.Username)
+		}
 	}
 
 	return nil
@@ -248,10 +287,16 @@ func (s *Services) IsBlocked(ctx context.Context, userID1, userID2 string) (bool
 	return count > 0, nil
 }
 
+// UserSearchResult represents a user in search results with friendship status
+type UserSearchResult struct {
+	*ent.User
+	IsFriend bool `json:"is_friend"`
+}
+
 // SearchUsers searches for users by username or name (case-insensitive partial match)
-func (s *Services) SearchUsers(ctx context.Context, query string, currentUserID string) ([]*ent.User, error) {
+func (s *Services) SearchUsers(ctx context.Context, query string, currentUserID string) ([]*UserSearchResult, error) {
 	if query == "" {
-		return []*ent.User{}, nil
+		return []*UserSearchResult{}, nil
 	}
 
 	users, err := s.ent.User.Query().
@@ -271,7 +316,33 @@ func (s *Services) SearchUsers(ctx context.Context, query string, currentUserID 
 		return nil, fmt.Errorf("failed to search users: %w", err)
 	}
 
-	return users, nil
+	// Filter out blocked users and convert to UserSearchResult with friendship status
+	var results []*UserSearchResult
+	for _, user := range users {
+		// Check if user is blocked (in either direction)
+		isBlocked, err := s.IsBlocked(ctx, currentUserID, user.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check block status for user %s: %w", user.ID, err)
+		}
+
+		// Skip blocked users
+		if isBlocked {
+			continue
+		}
+
+		// Check friendship status
+		isFriend, err := s.AreFriends(ctx, currentUserID, user.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check friendship status for user %s: %w", user.ID, err)
+		}
+
+		results = append(results, &UserSearchResult{
+			User:     user,
+			IsFriend: isFriend,
+		})
+	}
+
+	return results, nil
 }
 
 // SearchFriends searches within user's friends by username or name (case-insensitive partial match)

@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useMessagingStore } from "@/components/store/messaging-store";
-import { mockConversations, mockCurrentUser } from "@/lib/mock/messaging-data";
+// Mock data imports removed - now using real backend data
 
 export const ConversationManagementDemo: React.FC = () => {
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
@@ -29,8 +29,9 @@ export const ConversationManagementDemo: React.FC = () => {
     unblockUser,
   } = useMessagingStore();
 
-  const testConversation = conversations[0] || mockConversations[0];
-  const currentUser = mockCurrentUser;
+  const testConversation = conversations[0];
+  // TODO: Get current user from auth store instead of mock data
+  const currentUser = { id: "current-user" }; // Placeholder
 
   const handleArchiveTest = () => {
     if (testConversation) {

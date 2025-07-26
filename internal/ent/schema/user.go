@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 )
 
 // User holds the schema definition for the User entity.
@@ -30,6 +31,16 @@ func (User) Fields() []ent.Field {
 	}
 }
 
+// Indexes of the User.
+func (User) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("username"),
+		index.Fields("email"),
+		index.Fields("name"),
+		index.Fields("created_at"),
+	}
+}
+
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
@@ -48,5 +59,8 @@ func (User) Edges() []ent.Edge {
 		// Block relationships
 		edge.From("blocked_users", Block.Type).Ref("blocker"),
 		edge.From("blocked_by_users", Block.Type).Ref("blocked"),
+		// Call relationships
+		edge.From("calls_made", Call.Type).Ref("caller"),
+		edge.From("calls_received", Call.Type).Ref("callee"),
 	}
 }

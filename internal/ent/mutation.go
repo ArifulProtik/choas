@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"kakashi/chaos/internal/ent/block"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/conversationparticipant"
 	"kakashi/chaos/internal/ent/friend"
@@ -35,6 +36,7 @@ const (
 
 	// Node types.
 	TypeBlock                   = "Block"
+	TypeCall                    = "Call"
 	TypeConversation            = "Conversation"
 	TypeConversationParticipant = "ConversationParticipant"
 	TypeFriend                  = "Friend"
@@ -639,6 +641,1040 @@ func (m *BlockMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Block edge %s", name)
+}
+
+// CallMutation represents an operation that mutates the Call nodes in the graph.
+type CallMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	created_at    *time.Time
+	updated_at    *time.Time
+	call_type     *call.CallType
+	status        *call.Status
+	started_at    *time.Time
+	answered_at   *time.Time
+	ended_at      *time.Time
+	duration      *int
+	addduration   *int
+	clearedFields map[string]struct{}
+	caller        *string
+	clearedcaller bool
+	callee        *string
+	clearedcallee bool
+	done          bool
+	oldValue      func(context.Context) (*Call, error)
+	predicates    []predicate.Call
+}
+
+var _ ent.Mutation = (*CallMutation)(nil)
+
+// callOption allows management of the mutation configuration using functional options.
+type callOption func(*CallMutation)
+
+// newCallMutation creates new mutation for the Call entity.
+func newCallMutation(c config, op Op, opts ...callOption) *CallMutation {
+	m := &CallMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCall,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCallID sets the ID field of the mutation.
+func withCallID(id string) callOption {
+	return func(m *CallMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Call
+		)
+		m.oldValue = func(ctx context.Context) (*Call, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Call.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCall sets the old Call of the mutation.
+func withCall(node *Call) callOption {
+	return func(m *CallMutation) {
+		m.oldValue = func(context.Context) (*Call, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CallMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CallMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Call entities.
+func (m *CallMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CallMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CallMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Call.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *CallMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *CallMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *CallMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *CallMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *CallMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *CallMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetCallerID sets the "caller_id" field.
+func (m *CallMutation) SetCallerID(s string) {
+	m.caller = &s
+}
+
+// CallerID returns the value of the "caller_id" field in the mutation.
+func (m *CallMutation) CallerID() (r string, exists bool) {
+	v := m.caller
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCallerID returns the old "caller_id" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldCallerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCallerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCallerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCallerID: %w", err)
+	}
+	return oldValue.CallerID, nil
+}
+
+// ResetCallerID resets all changes to the "caller_id" field.
+func (m *CallMutation) ResetCallerID() {
+	m.caller = nil
+}
+
+// SetCalleeID sets the "callee_id" field.
+func (m *CallMutation) SetCalleeID(s string) {
+	m.callee = &s
+}
+
+// CalleeID returns the value of the "callee_id" field in the mutation.
+func (m *CallMutation) CalleeID() (r string, exists bool) {
+	v := m.callee
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCalleeID returns the old "callee_id" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldCalleeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCalleeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCalleeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCalleeID: %w", err)
+	}
+	return oldValue.CalleeID, nil
+}
+
+// ResetCalleeID resets all changes to the "callee_id" field.
+func (m *CallMutation) ResetCalleeID() {
+	m.callee = nil
+}
+
+// SetCallType sets the "call_type" field.
+func (m *CallMutation) SetCallType(ct call.CallType) {
+	m.call_type = &ct
+}
+
+// CallType returns the value of the "call_type" field in the mutation.
+func (m *CallMutation) CallType() (r call.CallType, exists bool) {
+	v := m.call_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCallType returns the old "call_type" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldCallType(ctx context.Context) (v call.CallType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCallType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCallType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCallType: %w", err)
+	}
+	return oldValue.CallType, nil
+}
+
+// ResetCallType resets all changes to the "call_type" field.
+func (m *CallMutation) ResetCallType() {
+	m.call_type = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *CallMutation) SetStatus(c call.Status) {
+	m.status = &c
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *CallMutation) Status() (r call.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldStatus(ctx context.Context) (v call.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *CallMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *CallMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *CallMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldStartedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ClearStartedAt clears the value of the "started_at" field.
+func (m *CallMutation) ClearStartedAt() {
+	m.started_at = nil
+	m.clearedFields[call.FieldStartedAt] = struct{}{}
+}
+
+// StartedAtCleared returns if the "started_at" field was cleared in this mutation.
+func (m *CallMutation) StartedAtCleared() bool {
+	_, ok := m.clearedFields[call.FieldStartedAt]
+	return ok
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *CallMutation) ResetStartedAt() {
+	m.started_at = nil
+	delete(m.clearedFields, call.FieldStartedAt)
+}
+
+// SetAnsweredAt sets the "answered_at" field.
+func (m *CallMutation) SetAnsweredAt(t time.Time) {
+	m.answered_at = &t
+}
+
+// AnsweredAt returns the value of the "answered_at" field in the mutation.
+func (m *CallMutation) AnsweredAt() (r time.Time, exists bool) {
+	v := m.answered_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnsweredAt returns the old "answered_at" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldAnsweredAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnsweredAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnsweredAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnsweredAt: %w", err)
+	}
+	return oldValue.AnsweredAt, nil
+}
+
+// ClearAnsweredAt clears the value of the "answered_at" field.
+func (m *CallMutation) ClearAnsweredAt() {
+	m.answered_at = nil
+	m.clearedFields[call.FieldAnsweredAt] = struct{}{}
+}
+
+// AnsweredAtCleared returns if the "answered_at" field was cleared in this mutation.
+func (m *CallMutation) AnsweredAtCleared() bool {
+	_, ok := m.clearedFields[call.FieldAnsweredAt]
+	return ok
+}
+
+// ResetAnsweredAt resets all changes to the "answered_at" field.
+func (m *CallMutation) ResetAnsweredAt() {
+	m.answered_at = nil
+	delete(m.clearedFields, call.FieldAnsweredAt)
+}
+
+// SetEndedAt sets the "ended_at" field.
+func (m *CallMutation) SetEndedAt(t time.Time) {
+	m.ended_at = &t
+}
+
+// EndedAt returns the value of the "ended_at" field in the mutation.
+func (m *CallMutation) EndedAt() (r time.Time, exists bool) {
+	v := m.ended_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEndedAt returns the old "ended_at" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldEndedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEndedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEndedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEndedAt: %w", err)
+	}
+	return oldValue.EndedAt, nil
+}
+
+// ClearEndedAt clears the value of the "ended_at" field.
+func (m *CallMutation) ClearEndedAt() {
+	m.ended_at = nil
+	m.clearedFields[call.FieldEndedAt] = struct{}{}
+}
+
+// EndedAtCleared returns if the "ended_at" field was cleared in this mutation.
+func (m *CallMutation) EndedAtCleared() bool {
+	_, ok := m.clearedFields[call.FieldEndedAt]
+	return ok
+}
+
+// ResetEndedAt resets all changes to the "ended_at" field.
+func (m *CallMutation) ResetEndedAt() {
+	m.ended_at = nil
+	delete(m.clearedFields, call.FieldEndedAt)
+}
+
+// SetDuration sets the "duration" field.
+func (m *CallMutation) SetDuration(i int) {
+	m.duration = &i
+	m.addduration = nil
+}
+
+// Duration returns the value of the "duration" field in the mutation.
+func (m *CallMutation) Duration() (r int, exists bool) {
+	v := m.duration
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDuration returns the old "duration" field's value of the Call entity.
+// If the Call object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CallMutation) OldDuration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDuration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDuration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDuration: %w", err)
+	}
+	return oldValue.Duration, nil
+}
+
+// AddDuration adds i to the "duration" field.
+func (m *CallMutation) AddDuration(i int) {
+	if m.addduration != nil {
+		*m.addduration += i
+	} else {
+		m.addduration = &i
+	}
+}
+
+// AddedDuration returns the value that was added to the "duration" field in this mutation.
+func (m *CallMutation) AddedDuration() (r int, exists bool) {
+	v := m.addduration
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (m *CallMutation) ClearDuration() {
+	m.duration = nil
+	m.addduration = nil
+	m.clearedFields[call.FieldDuration] = struct{}{}
+}
+
+// DurationCleared returns if the "duration" field was cleared in this mutation.
+func (m *CallMutation) DurationCleared() bool {
+	_, ok := m.clearedFields[call.FieldDuration]
+	return ok
+}
+
+// ResetDuration resets all changes to the "duration" field.
+func (m *CallMutation) ResetDuration() {
+	m.duration = nil
+	m.addduration = nil
+	delete(m.clearedFields, call.FieldDuration)
+}
+
+// ClearCaller clears the "caller" edge to the User entity.
+func (m *CallMutation) ClearCaller() {
+	m.clearedcaller = true
+	m.clearedFields[call.FieldCallerID] = struct{}{}
+}
+
+// CallerCleared reports if the "caller" edge to the User entity was cleared.
+func (m *CallMutation) CallerCleared() bool {
+	return m.clearedcaller
+}
+
+// CallerIDs returns the "caller" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CallerID instead. It exists only for internal usage by the builders.
+func (m *CallMutation) CallerIDs() (ids []string) {
+	if id := m.caller; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCaller resets all changes to the "caller" edge.
+func (m *CallMutation) ResetCaller() {
+	m.caller = nil
+	m.clearedcaller = false
+}
+
+// ClearCallee clears the "callee" edge to the User entity.
+func (m *CallMutation) ClearCallee() {
+	m.clearedcallee = true
+	m.clearedFields[call.FieldCalleeID] = struct{}{}
+}
+
+// CalleeCleared reports if the "callee" edge to the User entity was cleared.
+func (m *CallMutation) CalleeCleared() bool {
+	return m.clearedcallee
+}
+
+// CalleeIDs returns the "callee" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CalleeID instead. It exists only for internal usage by the builders.
+func (m *CallMutation) CalleeIDs() (ids []string) {
+	if id := m.callee; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCallee resets all changes to the "callee" edge.
+func (m *CallMutation) ResetCallee() {
+	m.callee = nil
+	m.clearedcallee = false
+}
+
+// Where appends a list predicates to the CallMutation builder.
+func (m *CallMutation) Where(ps ...predicate.Call) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CallMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CallMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Call, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CallMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CallMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Call).
+func (m *CallMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CallMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.created_at != nil {
+		fields = append(fields, call.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, call.FieldUpdatedAt)
+	}
+	if m.caller != nil {
+		fields = append(fields, call.FieldCallerID)
+	}
+	if m.callee != nil {
+		fields = append(fields, call.FieldCalleeID)
+	}
+	if m.call_type != nil {
+		fields = append(fields, call.FieldCallType)
+	}
+	if m.status != nil {
+		fields = append(fields, call.FieldStatus)
+	}
+	if m.started_at != nil {
+		fields = append(fields, call.FieldStartedAt)
+	}
+	if m.answered_at != nil {
+		fields = append(fields, call.FieldAnsweredAt)
+	}
+	if m.ended_at != nil {
+		fields = append(fields, call.FieldEndedAt)
+	}
+	if m.duration != nil {
+		fields = append(fields, call.FieldDuration)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CallMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case call.FieldCreatedAt:
+		return m.CreatedAt()
+	case call.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case call.FieldCallerID:
+		return m.CallerID()
+	case call.FieldCalleeID:
+		return m.CalleeID()
+	case call.FieldCallType:
+		return m.CallType()
+	case call.FieldStatus:
+		return m.Status()
+	case call.FieldStartedAt:
+		return m.StartedAt()
+	case call.FieldAnsweredAt:
+		return m.AnsweredAt()
+	case call.FieldEndedAt:
+		return m.EndedAt()
+	case call.FieldDuration:
+		return m.Duration()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CallMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case call.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case call.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case call.FieldCallerID:
+		return m.OldCallerID(ctx)
+	case call.FieldCalleeID:
+		return m.OldCalleeID(ctx)
+	case call.FieldCallType:
+		return m.OldCallType(ctx)
+	case call.FieldStatus:
+		return m.OldStatus(ctx)
+	case call.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case call.FieldAnsweredAt:
+		return m.OldAnsweredAt(ctx)
+	case call.FieldEndedAt:
+		return m.OldEndedAt(ctx)
+	case call.FieldDuration:
+		return m.OldDuration(ctx)
+	}
+	return nil, fmt.Errorf("unknown Call field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CallMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case call.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case call.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case call.FieldCallerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCallerID(v)
+		return nil
+	case call.FieldCalleeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCalleeID(v)
+		return nil
+	case call.FieldCallType:
+		v, ok := value.(call.CallType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCallType(v)
+		return nil
+	case call.FieldStatus:
+		v, ok := value.(call.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case call.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case call.FieldAnsweredAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnsweredAt(v)
+		return nil
+	case call.FieldEndedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEndedAt(v)
+		return nil
+	case call.FieldDuration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDuration(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Call field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CallMutation) AddedFields() []string {
+	var fields []string
+	if m.addduration != nil {
+		fields = append(fields, call.FieldDuration)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CallMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case call.FieldDuration:
+		return m.AddedDuration()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CallMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case call.FieldDuration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDuration(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Call numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CallMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(call.FieldStartedAt) {
+		fields = append(fields, call.FieldStartedAt)
+	}
+	if m.FieldCleared(call.FieldAnsweredAt) {
+		fields = append(fields, call.FieldAnsweredAt)
+	}
+	if m.FieldCleared(call.FieldEndedAt) {
+		fields = append(fields, call.FieldEndedAt)
+	}
+	if m.FieldCleared(call.FieldDuration) {
+		fields = append(fields, call.FieldDuration)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CallMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CallMutation) ClearField(name string) error {
+	switch name {
+	case call.FieldStartedAt:
+		m.ClearStartedAt()
+		return nil
+	case call.FieldAnsweredAt:
+		m.ClearAnsweredAt()
+		return nil
+	case call.FieldEndedAt:
+		m.ClearEndedAt()
+		return nil
+	case call.FieldDuration:
+		m.ClearDuration()
+		return nil
+	}
+	return fmt.Errorf("unknown Call nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CallMutation) ResetField(name string) error {
+	switch name {
+	case call.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case call.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case call.FieldCallerID:
+		m.ResetCallerID()
+		return nil
+	case call.FieldCalleeID:
+		m.ResetCalleeID()
+		return nil
+	case call.FieldCallType:
+		m.ResetCallType()
+		return nil
+	case call.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case call.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case call.FieldAnsweredAt:
+		m.ResetAnsweredAt()
+		return nil
+	case call.FieldEndedAt:
+		m.ResetEndedAt()
+		return nil
+	case call.FieldDuration:
+		m.ResetDuration()
+		return nil
+	}
+	return fmt.Errorf("unknown Call field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CallMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.caller != nil {
+		edges = append(edges, call.EdgeCaller)
+	}
+	if m.callee != nil {
+		edges = append(edges, call.EdgeCallee)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CallMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case call.EdgeCaller:
+		if id := m.caller; id != nil {
+			return []ent.Value{*id}
+		}
+	case call.EdgeCallee:
+		if id := m.callee; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CallMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CallMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CallMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcaller {
+		edges = append(edges, call.EdgeCaller)
+	}
+	if m.clearedcallee {
+		edges = append(edges, call.EdgeCallee)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CallMutation) EdgeCleared(name string) bool {
+	switch name {
+	case call.EdgeCaller:
+		return m.clearedcaller
+	case call.EdgeCallee:
+		return m.clearedcallee
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CallMutation) ClearEdge(name string) error {
+	switch name {
+	case call.EdgeCaller:
+		m.ClearCaller()
+		return nil
+	case call.EdgeCallee:
+		m.ClearCallee()
+		return nil
+	}
+	return fmt.Errorf("unknown Call unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CallMutation) ResetEdge(name string) error {
+	switch name {
+	case call.EdgeCaller:
+		m.ResetCaller()
+		return nil
+	case call.EdgeCallee:
+		m.ResetCallee()
+		return nil
+	}
+	return fmt.Errorf("unknown Call edge %s", name)
 }
 
 // ConversationMutation represents an operation that mutates the Conversation nodes in the graph.
@@ -1524,6 +2560,8 @@ type ConversationParticipantMutation struct {
 	updated_at          *time.Time
 	joined_at           *time.Time
 	last_read_at        *time.Time
+	is_archived         *bool
+	is_muted            *bool
 	clearedFields       map[string]struct{}
 	conversation        *string
 	clearedconversation bool
@@ -1867,6 +2905,78 @@ func (m *ConversationParticipantMutation) ResetLastReadAt() {
 	delete(m.clearedFields, conversationparticipant.FieldLastReadAt)
 }
 
+// SetIsArchived sets the "is_archived" field.
+func (m *ConversationParticipantMutation) SetIsArchived(b bool) {
+	m.is_archived = &b
+}
+
+// IsArchived returns the value of the "is_archived" field in the mutation.
+func (m *ConversationParticipantMutation) IsArchived() (r bool, exists bool) {
+	v := m.is_archived
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsArchived returns the old "is_archived" field's value of the ConversationParticipant entity.
+// If the ConversationParticipant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ConversationParticipantMutation) OldIsArchived(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsArchived is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsArchived requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsArchived: %w", err)
+	}
+	return oldValue.IsArchived, nil
+}
+
+// ResetIsArchived resets all changes to the "is_archived" field.
+func (m *ConversationParticipantMutation) ResetIsArchived() {
+	m.is_archived = nil
+}
+
+// SetIsMuted sets the "is_muted" field.
+func (m *ConversationParticipantMutation) SetIsMuted(b bool) {
+	m.is_muted = &b
+}
+
+// IsMuted returns the value of the "is_muted" field in the mutation.
+func (m *ConversationParticipantMutation) IsMuted() (r bool, exists bool) {
+	v := m.is_muted
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsMuted returns the old "is_muted" field's value of the ConversationParticipant entity.
+// If the ConversationParticipant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ConversationParticipantMutation) OldIsMuted(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsMuted is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsMuted requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsMuted: %w", err)
+	}
+	return oldValue.IsMuted, nil
+}
+
+// ResetIsMuted resets all changes to the "is_muted" field.
+func (m *ConversationParticipantMutation) ResetIsMuted() {
+	m.is_muted = nil
+}
+
 // ClearConversation clears the "conversation" edge to the Conversation entity.
 func (m *ConversationParticipantMutation) ClearConversation() {
 	m.clearedconversation = true
@@ -1955,7 +3065,7 @@ func (m *ConversationParticipantMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ConversationParticipantMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, conversationparticipant.FieldCreatedAt)
 	}
@@ -1973,6 +3083,12 @@ func (m *ConversationParticipantMutation) Fields() []string {
 	}
 	if m.last_read_at != nil {
 		fields = append(fields, conversationparticipant.FieldLastReadAt)
+	}
+	if m.is_archived != nil {
+		fields = append(fields, conversationparticipant.FieldIsArchived)
+	}
+	if m.is_muted != nil {
+		fields = append(fields, conversationparticipant.FieldIsMuted)
 	}
 	return fields
 }
@@ -1994,6 +3110,10 @@ func (m *ConversationParticipantMutation) Field(name string) (ent.Value, bool) {
 		return m.JoinedAt()
 	case conversationparticipant.FieldLastReadAt:
 		return m.LastReadAt()
+	case conversationparticipant.FieldIsArchived:
+		return m.IsArchived()
+	case conversationparticipant.FieldIsMuted:
+		return m.IsMuted()
 	}
 	return nil, false
 }
@@ -2015,6 +3135,10 @@ func (m *ConversationParticipantMutation) OldField(ctx context.Context, name str
 		return m.OldJoinedAt(ctx)
 	case conversationparticipant.FieldLastReadAt:
 		return m.OldLastReadAt(ctx)
+	case conversationparticipant.FieldIsArchived:
+		return m.OldIsArchived(ctx)
+	case conversationparticipant.FieldIsMuted:
+		return m.OldIsMuted(ctx)
 	}
 	return nil, fmt.Errorf("unknown ConversationParticipant field %s", name)
 }
@@ -2065,6 +3189,20 @@ func (m *ConversationParticipantMutation) SetField(name string, value ent.Value)
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLastReadAt(v)
+		return nil
+	case conversationparticipant.FieldIsArchived:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsArchived(v)
+		return nil
+	case conversationparticipant.FieldIsMuted:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsMuted(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ConversationParticipant field %s", name)
@@ -2141,6 +3279,12 @@ func (m *ConversationParticipantMutation) ResetField(name string) error {
 		return nil
 	case conversationparticipant.FieldLastReadAt:
 		m.ResetLastReadAt()
+		return nil
+	case conversationparticipant.FieldIsArchived:
+		m.ResetIsArchived()
+		return nil
+	case conversationparticipant.FieldIsMuted:
+		m.ResetIsMuted()
 		return nil
 	}
 	return fmt.Errorf("unknown ConversationParticipant field %s", name)
@@ -5170,6 +6314,8 @@ type MessageMutation struct {
 	clearedconversation bool
 	sender              *string
 	clearedsender       bool
+	call                *string
+	clearedcall         bool
 	done                bool
 	oldValue            func(context.Context) (*Message, error)
 	predicates          []predicate.Message
@@ -5580,6 +6726,55 @@ func (m *MessageMutation) ResetEditedAt() {
 	delete(m.clearedFields, message.FieldEditedAt)
 }
 
+// SetCallID sets the "call_id" field.
+func (m *MessageMutation) SetCallID(s string) {
+	m.call = &s
+}
+
+// CallID returns the value of the "call_id" field in the mutation.
+func (m *MessageMutation) CallID() (r string, exists bool) {
+	v := m.call
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCallID returns the old "call_id" field's value of the Message entity.
+// If the Message object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageMutation) OldCallID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCallID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCallID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCallID: %w", err)
+	}
+	return oldValue.CallID, nil
+}
+
+// ClearCallID clears the value of the "call_id" field.
+func (m *MessageMutation) ClearCallID() {
+	m.call = nil
+	m.clearedFields[message.FieldCallID] = struct{}{}
+}
+
+// CallIDCleared returns if the "call_id" field was cleared in this mutation.
+func (m *MessageMutation) CallIDCleared() bool {
+	_, ok := m.clearedFields[message.FieldCallID]
+	return ok
+}
+
+// ResetCallID resets all changes to the "call_id" field.
+func (m *MessageMutation) ResetCallID() {
+	m.call = nil
+	delete(m.clearedFields, message.FieldCallID)
+}
+
 // ClearConversation clears the "conversation" edge to the Conversation entity.
 func (m *MessageMutation) ClearConversation() {
 	m.clearedconversation = true
@@ -5634,6 +6829,33 @@ func (m *MessageMutation) ResetSender() {
 	m.clearedsender = false
 }
 
+// ClearCall clears the "call" edge to the Call entity.
+func (m *MessageMutation) ClearCall() {
+	m.clearedcall = true
+	m.clearedFields[message.FieldCallID] = struct{}{}
+}
+
+// CallCleared reports if the "call" edge to the Call entity was cleared.
+func (m *MessageMutation) CallCleared() bool {
+	return m.CallIDCleared() || m.clearedcall
+}
+
+// CallIDs returns the "call" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CallID instead. It exists only for internal usage by the builders.
+func (m *MessageMutation) CallIDs() (ids []string) {
+	if id := m.call; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCall resets all changes to the "call" edge.
+func (m *MessageMutation) ResetCall() {
+	m.call = nil
+	m.clearedcall = false
+}
+
 // Where appends a list predicates to the MessageMutation builder.
 func (m *MessageMutation) Where(ps ...predicate.Message) {
 	m.predicates = append(m.predicates, ps...)
@@ -5668,7 +6890,7 @@ func (m *MessageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *MessageMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, message.FieldCreatedAt)
 	}
@@ -5692,6 +6914,9 @@ func (m *MessageMutation) Fields() []string {
 	}
 	if m.edited_at != nil {
 		fields = append(fields, message.FieldEditedAt)
+	}
+	if m.call != nil {
+		fields = append(fields, message.FieldCallID)
 	}
 	return fields
 }
@@ -5717,6 +6942,8 @@ func (m *MessageMutation) Field(name string) (ent.Value, bool) {
 		return m.IsDeleted()
 	case message.FieldEditedAt:
 		return m.EditedAt()
+	case message.FieldCallID:
+		return m.CallID()
 	}
 	return nil, false
 }
@@ -5742,6 +6969,8 @@ func (m *MessageMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldIsDeleted(ctx)
 	case message.FieldEditedAt:
 		return m.OldEditedAt(ctx)
+	case message.FieldCallID:
+		return m.OldCallID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Message field %s", name)
 }
@@ -5807,6 +7036,13 @@ func (m *MessageMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetEditedAt(v)
 		return nil
+	case message.FieldCallID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCallID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Message field %s", name)
 }
@@ -5840,6 +7076,9 @@ func (m *MessageMutation) ClearedFields() []string {
 	if m.FieldCleared(message.FieldEditedAt) {
 		fields = append(fields, message.FieldEditedAt)
 	}
+	if m.FieldCleared(message.FieldCallID) {
+		fields = append(fields, message.FieldCallID)
+	}
 	return fields
 }
 
@@ -5856,6 +7095,9 @@ func (m *MessageMutation) ClearField(name string) error {
 	switch name {
 	case message.FieldEditedAt:
 		m.ClearEditedAt()
+		return nil
+	case message.FieldCallID:
+		m.ClearCallID()
 		return nil
 	}
 	return fmt.Errorf("unknown Message nullable field %s", name)
@@ -5889,18 +7131,24 @@ func (m *MessageMutation) ResetField(name string) error {
 	case message.FieldEditedAt:
 		m.ResetEditedAt()
 		return nil
+	case message.FieldCallID:
+		m.ResetCallID()
+		return nil
 	}
 	return fmt.Errorf("unknown Message field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *MessageMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.conversation != nil {
 		edges = append(edges, message.EdgeConversation)
 	}
 	if m.sender != nil {
 		edges = append(edges, message.EdgeSender)
+	}
+	if m.call != nil {
+		edges = append(edges, message.EdgeCall)
 	}
 	return edges
 }
@@ -5917,13 +7165,17 @@ func (m *MessageMutation) AddedIDs(name string) []ent.Value {
 		if id := m.sender; id != nil {
 			return []ent.Value{*id}
 		}
+	case message.EdgeCall:
+		if id := m.call; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *MessageMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -5935,12 +7187,15 @@ func (m *MessageMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *MessageMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedconversation {
 		edges = append(edges, message.EdgeConversation)
 	}
 	if m.clearedsender {
 		edges = append(edges, message.EdgeSender)
+	}
+	if m.clearedcall {
+		edges = append(edges, message.EdgeCall)
 	}
 	return edges
 }
@@ -5953,6 +7208,8 @@ func (m *MessageMutation) EdgeCleared(name string) bool {
 		return m.clearedconversation
 	case message.EdgeSender:
 		return m.clearedsender
+	case message.EdgeCall:
+		return m.clearedcall
 	}
 	return false
 }
@@ -5967,6 +7224,9 @@ func (m *MessageMutation) ClearEdge(name string) error {
 	case message.EdgeSender:
 		m.ClearSender()
 		return nil
+	case message.EdgeCall:
+		m.ClearCall()
+		return nil
 	}
 	return fmt.Errorf("unknown Message unique edge %s", name)
 }
@@ -5980,6 +7240,9 @@ func (m *MessageMutation) ResetEdge(name string) error {
 		return nil
 	case message.EdgeSender:
 		m.ResetSender()
+		return nil
+	case message.EdgeCall:
+		m.ResetCall()
 		return nil
 	}
 	return fmt.Errorf("unknown Message edge %s", name)
@@ -7603,6 +8866,12 @@ type UserMutation struct {
 	blocked_by_users                   map[string]struct{}
 	removedblocked_by_users            map[string]struct{}
 	clearedblocked_by_users            bool
+	calls_made                         map[string]struct{}
+	removedcalls_made                  map[string]struct{}
+	clearedcalls_made                  bool
+	calls_received                     map[string]struct{}
+	removedcalls_received              map[string]struct{}
+	clearedcalls_received              bool
 	done                               bool
 	oldValue                           func(context.Context) (*User, error)
 	predicates                         []predicate.User
@@ -8736,6 +10005,114 @@ func (m *UserMutation) ResetBlockedByUsers() {
 	m.removedblocked_by_users = nil
 }
 
+// AddCallsMadeIDs adds the "calls_made" edge to the Call entity by ids.
+func (m *UserMutation) AddCallsMadeIDs(ids ...string) {
+	if m.calls_made == nil {
+		m.calls_made = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.calls_made[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCallsMade clears the "calls_made" edge to the Call entity.
+func (m *UserMutation) ClearCallsMade() {
+	m.clearedcalls_made = true
+}
+
+// CallsMadeCleared reports if the "calls_made" edge to the Call entity was cleared.
+func (m *UserMutation) CallsMadeCleared() bool {
+	return m.clearedcalls_made
+}
+
+// RemoveCallsMadeIDs removes the "calls_made" edge to the Call entity by IDs.
+func (m *UserMutation) RemoveCallsMadeIDs(ids ...string) {
+	if m.removedcalls_made == nil {
+		m.removedcalls_made = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.calls_made, ids[i])
+		m.removedcalls_made[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCallsMade returns the removed IDs of the "calls_made" edge to the Call entity.
+func (m *UserMutation) RemovedCallsMadeIDs() (ids []string) {
+	for id := range m.removedcalls_made {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CallsMadeIDs returns the "calls_made" edge IDs in the mutation.
+func (m *UserMutation) CallsMadeIDs() (ids []string) {
+	for id := range m.calls_made {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCallsMade resets all changes to the "calls_made" edge.
+func (m *UserMutation) ResetCallsMade() {
+	m.calls_made = nil
+	m.clearedcalls_made = false
+	m.removedcalls_made = nil
+}
+
+// AddCallsReceivedIDs adds the "calls_received" edge to the Call entity by ids.
+func (m *UserMutation) AddCallsReceivedIDs(ids ...string) {
+	if m.calls_received == nil {
+		m.calls_received = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.calls_received[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCallsReceived clears the "calls_received" edge to the Call entity.
+func (m *UserMutation) ClearCallsReceived() {
+	m.clearedcalls_received = true
+}
+
+// CallsReceivedCleared reports if the "calls_received" edge to the Call entity was cleared.
+func (m *UserMutation) CallsReceivedCleared() bool {
+	return m.clearedcalls_received
+}
+
+// RemoveCallsReceivedIDs removes the "calls_received" edge to the Call entity by IDs.
+func (m *UserMutation) RemoveCallsReceivedIDs(ids ...string) {
+	if m.removedcalls_received == nil {
+		m.removedcalls_received = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.calls_received, ids[i])
+		m.removedcalls_received[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCallsReceived returns the removed IDs of the "calls_received" edge to the Call entity.
+func (m *UserMutation) RemovedCallsReceivedIDs() (ids []string) {
+	for id := range m.removedcalls_received {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CallsReceivedIDs returns the "calls_received" edge IDs in the mutation.
+func (m *UserMutation) CallsReceivedIDs() (ids []string) {
+	for id := range m.calls_received {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCallsReceived resets all changes to the "calls_received" edge.
+func (m *UserMutation) ResetCallsReceived() {
+	m.calls_received = nil
+	m.clearedcalls_received = false
+	m.removedcalls_received = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -9032,7 +10409,7 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 14)
 	if m.sessions != nil {
 		edges = append(edges, user.EdgeSessions)
 	}
@@ -9068,6 +10445,12 @@ func (m *UserMutation) AddedEdges() []string {
 	}
 	if m.blocked_by_users != nil {
 		edges = append(edges, user.EdgeBlockedByUsers)
+	}
+	if m.calls_made != nil {
+		edges = append(edges, user.EdgeCallsMade)
+	}
+	if m.calls_received != nil {
+		edges = append(edges, user.EdgeCallsReceived)
 	}
 	return edges
 }
@@ -9148,13 +10531,25 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeCallsMade:
+		ids := make([]ent.Value, 0, len(m.calls_made))
+		for id := range m.calls_made {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeCallsReceived:
+		ids := make([]ent.Value, 0, len(m.calls_received))
+		for id := range m.calls_received {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 14)
 	if m.removedsessions != nil {
 		edges = append(edges, user.EdgeSessions)
 	}
@@ -9190,6 +10585,12 @@ func (m *UserMutation) RemovedEdges() []string {
 	}
 	if m.removedblocked_by_users != nil {
 		edges = append(edges, user.EdgeBlockedByUsers)
+	}
+	if m.removedcalls_made != nil {
+		edges = append(edges, user.EdgeCallsMade)
+	}
+	if m.removedcalls_received != nil {
+		edges = append(edges, user.EdgeCallsReceived)
 	}
 	return edges
 }
@@ -9270,13 +10671,25 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeCallsMade:
+		ids := make([]ent.Value, 0, len(m.removedcalls_made))
+		for id := range m.removedcalls_made {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeCallsReceived:
+		ids := make([]ent.Value, 0, len(m.removedcalls_received))
+		for id := range m.removedcalls_received {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 14)
 	if m.clearedsessions {
 		edges = append(edges, user.EdgeSessions)
 	}
@@ -9313,6 +10726,12 @@ func (m *UserMutation) ClearedEdges() []string {
 	if m.clearedblocked_by_users {
 		edges = append(edges, user.EdgeBlockedByUsers)
 	}
+	if m.clearedcalls_made {
+		edges = append(edges, user.EdgeCallsMade)
+	}
+	if m.clearedcalls_received {
+		edges = append(edges, user.EdgeCallsReceived)
+	}
 	return edges
 }
 
@@ -9344,6 +10763,10 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedblocked_users
 	case user.EdgeBlockedByUsers:
 		return m.clearedblocked_by_users
+	case user.EdgeCallsMade:
+		return m.clearedcalls_made
+	case user.EdgeCallsReceived:
+		return m.clearedcalls_received
 	}
 	return false
 }
@@ -9395,6 +10818,12 @@ func (m *UserMutation) ResetEdge(name string) error {
 		return nil
 	case user.EdgeBlockedByUsers:
 		m.ResetBlockedByUsers()
+		return nil
+	case user.EdgeCallsMade:
+		m.ResetCallsMade()
+		return nil
+	case user.EdgeCallsReceived:
+		m.ResetCallsReceived()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

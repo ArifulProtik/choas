@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"kakashi/chaos/internal/ent/call"
 	"kakashi/chaos/internal/ent/conversation"
 	"kakashi/chaos/internal/ent/message"
 	"kakashi/chaos/internal/ent/user"
@@ -110,6 +111,20 @@ func (mc *MessageCreate) SetNillableEditedAt(t *time.Time) *MessageCreate {
 	return mc
 }
 
+// SetCallID sets the "call_id" field.
+func (mc *MessageCreate) SetCallID(s string) *MessageCreate {
+	mc.mutation.SetCallID(s)
+	return mc
+}
+
+// SetNillableCallID sets the "call_id" field if the given value is not nil.
+func (mc *MessageCreate) SetNillableCallID(s *string) *MessageCreate {
+	if s != nil {
+		mc.SetCallID(*s)
+	}
+	return mc
+}
+
 // SetID sets the "id" field.
 func (mc *MessageCreate) SetID(s string) *MessageCreate {
 	mc.mutation.SetID(s)
@@ -132,6 +147,11 @@ func (mc *MessageCreate) SetConversation(c *Conversation) *MessageCreate {
 // SetSender sets the "sender" edge to the User entity.
 func (mc *MessageCreate) SetSender(u *User) *MessageCreate {
 	return mc.SetSenderID(u.ID)
+}
+
+// SetCall sets the "call" edge to the Call entity.
+func (mc *MessageCreate) SetCall(c *Call) *MessageCreate {
+	return mc.SetCallID(c.ID)
 }
 
 // Mutation returns the MessageMutation object of the builder.
@@ -331,6 +351,23 @@ func (mc *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.SenderID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := mc.mutation.CallIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   message.CallTable,
+			Columns: []string{message.CallColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(call.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CallID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

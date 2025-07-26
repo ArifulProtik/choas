@@ -20,6 +20,18 @@ func (f BlockFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlockMutation", m)
 }
 
+// The CallFunc type is an adapter to allow the use of ordinary
+// function as Call mutator.
+type CallFunc func(context.Context, *ent.CallMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CallFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CallMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CallMutation", m)
+}
+
 // The ConversationFunc type is an adapter to allow the use of ordinary
 // function as Conversation mutator.
 type ConversationFunc func(context.Context, *ent.ConversationMutation) (ent.Value, error)

@@ -9,6 +9,9 @@ import (
 // Block is the predicate function for block builders.
 type Block func(*sql.Selector)
 
+// Call is the predicate function for call builders.
+type Call func(*sql.Selector)
+
 // Conversation is the predicate function for conversation builders.
 type Conversation func(*sql.Selector)
 

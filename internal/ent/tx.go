@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Block is the client for interacting with the Block builders.
 	Block *BlockClient
+	// Call is the client for interacting with the Call builders.
+	Call *CallClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationParticipant is the client for interacting with the ConversationParticipant builders.
@@ -166,6 +168,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Block = NewBlockClient(tx.config)
+	tx.Call = NewCallClient(tx.config)
 	tx.Conversation = NewConversationClient(tx.config)
 	tx.ConversationParticipant = NewConversationParticipantClient(tx.config)
 	tx.Friend = NewFriendClient(tx.config)

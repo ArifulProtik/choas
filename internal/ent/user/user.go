@@ -56,6 +56,10 @@ const (
 	EdgeBlockedUsers = "blocked_users"
 	// EdgeBlockedByUsers holds the string denoting the blocked_by_users edge name in mutations.
 	EdgeBlockedByUsers = "blocked_by_users"
+	// EdgeCallsMade holds the string denoting the calls_made edge name in mutations.
+	EdgeCallsMade = "calls_made"
+	// EdgeCallsReceived holds the string denoting the calls_received edge name in mutations.
+	EdgeCallsReceived = "calls_received"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// SessionsTable is the table that holds the sessions relation/edge.
@@ -142,6 +146,20 @@ const (
 	BlockedByUsersInverseTable = "blocks"
 	// BlockedByUsersColumn is the table column denoting the blocked_by_users relation/edge.
 	BlockedByUsersColumn = "blocked_id"
+	// CallsMadeTable is the table that holds the calls_made relation/edge.
+	CallsMadeTable = "calls"
+	// CallsMadeInverseTable is the table name for the Call entity.
+	// It exists in this package in order to avoid circular dependency with the "call" package.
+	CallsMadeInverseTable = "calls"
+	// CallsMadeColumn is the table column denoting the calls_made relation/edge.
+	CallsMadeColumn = "caller_id"
+	// CallsReceivedTable is the table that holds the calls_received relation/edge.
+	CallsReceivedTable = "calls"
+	// CallsReceivedInverseTable is the table name for the Call entity.
+	// It exists in this package in order to avoid circular dependency with the "call" package.
+	CallsReceivedInverseTable = "calls"
+	// CallsReceivedColumn is the table column denoting the calls_received relation/edge.
+	CallsReceivedColumn = "callee_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -407,6 +425,34 @@ func ByBlockedByUsers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBlockedByUsersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByCallsMadeCount orders the results by calls_made count.
+func ByCallsMadeCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCallsMadeStep(), opts...)
+	}
+}
+
+// ByCallsMade orders the results by calls_made terms.
+func ByCallsMade(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCallsMadeStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCallsReceivedCount orders the results by calls_received count.
+func ByCallsReceivedCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCallsReceivedStep(), opts...)
+	}
+}
+
+// ByCallsReceived orders the results by calls_received terms.
+func ByCallsReceived(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCallsReceivedStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSessionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -489,5 +535,19 @@ func newBlockedByUsersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BlockedByUsersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, true, BlockedByUsersTable, BlockedByUsersColumn),
+	)
+}
+func newCallsMadeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CallsMadeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, CallsMadeTable, CallsMadeColumn),
+	)
+}
+func newCallsReceivedStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CallsReceivedInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, CallsReceivedTable, CallsReceivedColumn),
 	)
 }

@@ -100,6 +100,11 @@ func EditedAt(v time.Time) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldEditedAt, v))
 }
 
+// CallID applies equality check predicate on the "call_id" field. It's identical to CallIDEQ.
+func CallID(v string) predicate.Message {
+	return predicate.Message(sql.FieldEQ(FieldCallID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldCreatedAt, v))
@@ -455,6 +460,81 @@ func EditedAtNotNil() predicate.Message {
 	return predicate.Message(sql.FieldNotNull(FieldEditedAt))
 }
 
+// CallIDEQ applies the EQ predicate on the "call_id" field.
+func CallIDEQ(v string) predicate.Message {
+	return predicate.Message(sql.FieldEQ(FieldCallID, v))
+}
+
+// CallIDNEQ applies the NEQ predicate on the "call_id" field.
+func CallIDNEQ(v string) predicate.Message {
+	return predicate.Message(sql.FieldNEQ(FieldCallID, v))
+}
+
+// CallIDIn applies the In predicate on the "call_id" field.
+func CallIDIn(vs ...string) predicate.Message {
+	return predicate.Message(sql.FieldIn(FieldCallID, vs...))
+}
+
+// CallIDNotIn applies the NotIn predicate on the "call_id" field.
+func CallIDNotIn(vs ...string) predicate.Message {
+	return predicate.Message(sql.FieldNotIn(FieldCallID, vs...))
+}
+
+// CallIDGT applies the GT predicate on the "call_id" field.
+func CallIDGT(v string) predicate.Message {
+	return predicate.Message(sql.FieldGT(FieldCallID, v))
+}
+
+// CallIDGTE applies the GTE predicate on the "call_id" field.
+func CallIDGTE(v string) predicate.Message {
+	return predicate.Message(sql.FieldGTE(FieldCallID, v))
+}
+
+// CallIDLT applies the LT predicate on the "call_id" field.
+func CallIDLT(v string) predicate.Message {
+	return predicate.Message(sql.FieldLT(FieldCallID, v))
+}
+
+// CallIDLTE applies the LTE predicate on the "call_id" field.
+func CallIDLTE(v string) predicate.Message {
+	return predicate.Message(sql.FieldLTE(FieldCallID, v))
+}
+
+// CallIDContains applies the Contains predicate on the "call_id" field.
+func CallIDContains(v string) predicate.Message {
+	return predicate.Message(sql.FieldContains(FieldCallID, v))
+}
+
+// CallIDHasPrefix applies the HasPrefix predicate on the "call_id" field.
+func CallIDHasPrefix(v string) predicate.Message {
+	return predicate.Message(sql.FieldHasPrefix(FieldCallID, v))
+}
+
+// CallIDHasSuffix applies the HasSuffix predicate on the "call_id" field.
+func CallIDHasSuffix(v string) predicate.Message {
+	return predicate.Message(sql.FieldHasSuffix(FieldCallID, v))
+}
+
+// CallIDIsNil applies the IsNil predicate on the "call_id" field.
+func CallIDIsNil() predicate.Message {
+	return predicate.Message(sql.FieldIsNull(FieldCallID))
+}
+
+// CallIDNotNil applies the NotNil predicate on the "call_id" field.
+func CallIDNotNil() predicate.Message {
+	return predicate.Message(sql.FieldNotNull(FieldCallID))
+}
+
+// CallIDEqualFold applies the EqualFold predicate on the "call_id" field.
+func CallIDEqualFold(v string) predicate.Message {
+	return predicate.Message(sql.FieldEqualFold(FieldCallID, v))
+}
+
+// CallIDContainsFold applies the ContainsFold predicate on the "call_id" field.
+func CallIDContainsFold(v string) predicate.Message {
+	return predicate.Message(sql.FieldContainsFold(FieldCallID, v))
+}
+
 // HasConversation applies the HasEdge predicate on the "conversation" edge.
 func HasConversation() predicate.Message {
 	return predicate.Message(func(s *sql.Selector) {
@@ -493,6 +573,29 @@ func HasSender() predicate.Message {
 func HasSenderWith(preds ...predicate.User) predicate.Message {
 	return predicate.Message(func(s *sql.Selector) {
 		step := newSenderStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCall applies the HasEdge predicate on the "call" edge.
+func HasCall() predicate.Message {
+	return predicate.Message(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CallTable, CallColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCallWith applies the HasEdge predicate on the "call" edge with a given conditions (other predicates).
+func HasCallWith(preds ...predicate.Call) predicate.Message {
+	return predicate.Message(func(s *sql.Selector) {
+		step := newCallStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -2,23 +2,19 @@
 import { User } from "./user";
 
 // Message types
-export type MessageType = "text" | "call_start" | "call_end" | "system";
-
-export type MessageStatus =
-  | "sending"
-  | "sent"
-  | "delivered"
-  | "read"
-  | "failed";
+export type MessageType = "text" | "image" | "file" | "call_start" | "call_end";
 
 export interface Message {
   id: string;
   conversation_id: string;
+  sender_id: string;
   sender: User;
   content: string;
   message_type: MessageType;
-  status: MessageStatus;
-  delivered_at?: string;
+  is_deleted: boolean;
+  edited_at?: string;
+  call_id?: string;
+  status?: "sending" | "sent" | "delivered" | "read" | "failed";
   read_at?: string;
   created_at: string;
   updated_at: string;
@@ -27,14 +23,16 @@ export interface Message {
 // Conversation types
 export interface Conversation {
   id: string;
-  participant1: User;
-  participant2: User;
-  last_message?: Message;
-  last_message_at: string;
-  unread_count: number;
+  type: "direct" | "group";
+  name?: string;
+  last_message_at?: string;
   is_archived: boolean;
+  is_muted: boolean;
   created_at: string;
   updated_at: string;
+  participants: User[];
+  last_message?: Message;
+  unread_count: number;
 }
 
 // User presence types
@@ -54,6 +52,7 @@ export type CallStatus =
   | "accepted"
   | "declined"
   | "ended"
+  | "missed"
   | "failed";
 
 export type CallType = "voice" | "video"; // Future-proofing for video calls
@@ -65,6 +64,7 @@ export interface Call {
   type: CallType;
   status: CallStatus;
   started_at?: string;
+  answered_at?: string;
   ended_at?: string;
   duration?: number; // in seconds
   created_at: string;

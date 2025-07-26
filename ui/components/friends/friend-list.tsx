@@ -21,6 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+// Reverted to original store-based implementation
+import { toast } from "sonner";
 
 interface FriendListProps {
   onStartConversation?: (userId: string) => void;

@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { Call, CallStatus, CallType } from "@/lib/schemas/messaging";
 import { User } from "@/lib/schemas/user";
+import { isWebSocketMessageDuplicate } from "@/lib/utils/websocket-deduplication";
 
 // Call state interfaces
 export type CallConnectionQuality =
@@ -55,7 +56,7 @@ interface CallState {
   // Actions
   // Call lifecycle actions
   initiateCall: (calleeId: string, callType?: CallType) => void;
-  setIncomingCall: (call: Call) => void;
+  setIncomingCall: (call: Call | null) => void;
   acceptCall: (callId: string) => void;
   declineCall: (callId: string) => void;
   endCall: () => void;
@@ -94,6 +95,9 @@ interface CallState {
   canInitiateCall: () => boolean;
   getCurrentCallDuration: () => number;
   getCallParticipant: () => User | null;
+
+  // WebSocket integration
+  handleWebSocketMessage: (message: any) => void;
 
   // Cleanup and reset
   reset: () => void;
@@ -174,21 +178,30 @@ export const useCallStore = create<CallState>()(
       });
     },
 
-    setIncomingCall: (call: Call) => {
+    setIncomingCall: (call: Call | null) => {
       const state = get();
 
       // If already in a call, automatically decline the incoming call
-      if (state.activeCall) {
+      if (state.activeCall && call) {
         // This would trigger a decline action to the backend
         return;
       }
 
-      set({
-        incomingCall: call,
-        showIncomingCallModal: true,
-        callStatus: "ringing",
-        callError: null,
-      });
+      if (call) {
+        set({
+          incomingCall: call,
+          showIncomingCallModal: true,
+          callStatus: "ringing",
+          callError: null,
+        });
+      } else {
+        set({
+          incomingCall: null,
+          showIncomingCallModal: false,
+          callStatus: "idle",
+          callError: null,
+        });
+      }
     },
 
     acceptCall: (callId: string) => {
@@ -427,6 +440,168 @@ export const useCallStore = create<CallState>()(
       // Return the other participant (not the current user)
       // This logic would need to be updated based on how current user is identified
       return call.caller.id === "current-user" ? call.callee : call.caller;
+    },
+
+    // WebSocket message handler - matches backend call signaling patterns
+    handleWebSocketMessage: (message: any) => {
+      if (!message.type || !message.data) {
+        console.warn("Invalid WebSocket call message format:", message);
+        return;
+      }
+
+      const timestamp = message.timestamp || new Date().toISOString();
+
+      // Check for duplicate messages using backend message ID and timestamp patterns
+      if (isWebSocketMessageDuplicate(message.type, message.data, timestamp)) {
+        console.log(
+          "Duplicate WebSocket call message detected, skipping:",
+          message.type
+        );
+        return;
+      }
+
+      switch (message.type) {
+        case "call_request":
+          // Handle incoming call request matching backend CallRequestData structure
+          if (
+            message.data.call_id &&
+            message.data.caller_id &&
+            message.data.callee_id &&
+            message.data.call_type
+          ) {
+            const state = get();
+
+            // Only handle if call is for current user and not already in a call
+            const currentUserId = "current-user"; // This should come from auth store
+            if (message.data.callee_id === currentUserId && !state.activeCall) {
+              const incomingCall: Call = {
+                id: message.data.call_id,
+                caller: {
+                  id: message.data.caller_id,
+                  name: "Caller", // Would be populated from user data in real implementation
+                  username: "caller",
+                  email: "",
+                  created_at: timestamp,
+                  updated_at: timestamp,
+                },
+                callee: {
+                  id: message.data.callee_id,
+                  name: "Callee", // Would be populated from user data in real implementation
+                  username: "callee",
+                  email: "",
+                  created_at: timestamp,
+                  updated_at: timestamp,
+                },
+                type: (message.data.call_type as CallType) || "voice",
+                status: "ringing",
+                created_at: timestamp,
+                updated_at: timestamp,
+              };
+
+              get().setIncomingCall(incomingCall);
+            }
+          }
+          break;
+
+        case "call_response":
+          // Handle call response matching backend CallResponseData structure
+          if (
+            message.data.call_id &&
+            message.data.response &&
+            message.data.caller_id &&
+            message.data.callee_id
+          ) {
+            const state = get();
+
+            // Handle response for active call
+            if (state.activeCall?.id === message.data.call_id) {
+              if (message.data.response === "accepted" && state.activeCall) {
+                get().setCallStatus("accepted");
+                set({
+                  activeCall: {
+                    ...state.activeCall,
+                    status: "accepted",
+                    answered_at: timestamp,
+                    started_at: timestamp, // Call starts when accepted
+                  },
+                  isConnecting: false,
+                  isInitiatingCall: false,
+                });
+              } else if (message.data.response === "declined") {
+                get().setCallStatus("declined");
+
+                // Add to recent calls and clear active call
+                if (state.activeCall) {
+                  get().addToRecentCalls({
+                    ...state.activeCall,
+                    status: "declined",
+                    ended_at: timestamp,
+                  });
+                }
+
+                set({
+                  activeCall: null,
+                  callStatus: "idle",
+                  isInitiatingCall: false,
+                  isConnecting: false,
+                  callError: null,
+                });
+              }
+            }
+          }
+          break;
+
+        case "call_end":
+          // Handle call end matching backend CallEndData structure
+          if (
+            message.data.call_id &&
+            message.data.caller_id &&
+            message.data.callee_id
+          ) {
+            const state = get();
+
+            // Check if this call end is for current user's call
+            if (
+              state.activeCall?.id === message.data.call_id ||
+              state.incomingCall?.id === message.data.call_id
+            ) {
+              const callToEnd = state.activeCall || state.incomingCall;
+
+              if (callToEnd) {
+                // Add to recent calls with proper duration
+                get().addToRecentCalls({
+                  ...callToEnd,
+                  status: "ended",
+                  ended_at: timestamp,
+                  duration: message.data.duration || 0,
+                });
+              }
+
+              // Clear all call state
+              set({
+                activeCall: null,
+                incomingCall: null,
+                callStatus: "idle",
+                showIncomingCallModal: false,
+                isInitiatingCall: false,
+                isConnecting: false,
+                isCallWindowMinimized: false,
+                audioSettings: initialAudioSettings,
+                callMetrics: initialCallMetrics,
+                callError: null,
+              });
+            }
+          }
+          break;
+
+        default:
+          // Log unhandled message types for debugging
+          console.log(
+            "Unhandled WebSocket message type in CallStore:",
+            message.type
+          );
+          break;
+      }
     },
 
     // Cleanup and reset

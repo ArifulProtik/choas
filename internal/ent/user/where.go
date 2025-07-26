@@ -961,6 +961,52 @@ func HasBlockedByUsersWith(preds ...predicate.Block) predicate.User {
 	})
 }
 
+// HasCallsMade applies the HasEdge predicate on the "calls_made" edge.
+func HasCallsMade() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CallsMadeTable, CallsMadeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCallsMadeWith applies the HasEdge predicate on the "calls_made" edge with a given conditions (other predicates).
+func HasCallsMadeWith(preds ...predicate.Call) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newCallsMadeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCallsReceived applies the HasEdge predicate on the "calls_received" edge.
+func HasCallsReceived() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CallsReceivedTable, CallsReceivedColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCallsReceivedWith applies the HasEdge predicate on the "calls_received" edge with a given conditions (other predicates).
+func HasCallsReceivedWith(preds ...predicate.Call) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newCallsReceivedStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

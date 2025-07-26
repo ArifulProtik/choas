@@ -106,3 +106,33 @@ This feature implements a comprehensive messaging and friends system API that su
 4. WHEN a user searches by participant name THEN the system SHALL return matching conversations
 5. WHEN search results are returned THEN the system SHALL highlight matching text in message content
 6. IF no matches are found THEN the system SHALL return an empty result set with appropriate message
+
+### Requirement 8: Voice Calling System
+
+**User Story:** As a user, I want to make voice calls with my friends, so that I can have real-time voice communication and see call history in my conversations.
+
+#### Acceptance Criteria
+
+1. WHEN a user initiates a voice call THEN the system SHALL create a call record and send real-time call invitation to the target user
+2. WHEN a user receives a call invitation THEN the system SHALL notify them in real-time via WebSocket and allow them to accept or decline
+3. WHEN a call is accepted THEN the system SHALL update call status and create call_start message in the conversation
+4. WHEN a call is declined or missed THEN the system SHALL update call status and notify the caller via WebSocket
+5. WHEN a call ends THEN the system SHALL update call duration and create call_end message in the conversation
+6. WHEN call messages are created THEN the system SHALL appear in conversation history as system messages
+7. IF users are not friends THEN the system SHALL prevent voice calls between them
+8. WHEN a user is already in a call THEN the system SHALL reject new incoming calls with busy status
+9. IF a user blocks another user THEN the system SHALL prevent all voice call interactions between them
+10. WHEN a call invitation expires (30 seconds) THEN the system SHALL automatically mark it as missed
+
+### Requirement 9: Call History and Integration
+
+**User Story:** As a user, I want to see my call history integrated with my conversations, so that I can track my communication history in one place.
+
+#### Acceptance Criteria
+
+1. WHEN a call starts THEN the system SHALL create a "call_start" message in the conversation
+2. WHEN a call ends THEN the system SHALL create a "call_end" message with duration in the conversation
+3. WHEN a user views conversation history THEN the system SHALL display call messages with appropriate formatting
+4. WHEN a user requests recent calls THEN the system SHALL return calls from all conversations with pagination
+5. WHEN call messages are displayed THEN the system SHALL show call duration, status, and timestamp
+6. WHEN a call is missed THEN the system SHALL show missed call indicator in conversation

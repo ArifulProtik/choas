@@ -11,30 +11,7 @@ import { getOtherParticipant } from "@/lib/utils/messaging-utils";
 import { Headphones, Plus, Search } from "lucide-react";
 import Link from "next/link";
 
-// Mock server data
-const mockServers = [
-  {
-    id: "server_1",
-    name: "Design Team",
-    icon: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=64&h=64&fit=crop&crop=center",
-    unreadCount: 3,
-    hasNotification: true,
-  },
-  {
-    id: "server_2",
-    name: "Gaming Hub",
-    icon: null,
-    unreadCount: 0,
-    hasNotification: false,
-  },
-  {
-    id: "server_3",
-    name: "Work Space",
-    icon: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=64&h=64&fit=crop&crop=center",
-    unreadCount: 12,
-    hasNotification: true,
-  },
-];
+// Server data removed - this app focuses on private messaging, not servers
 
 const MainSidebar = () => {
   const { user } = useAuthStore();
@@ -112,9 +89,10 @@ const MainSidebar = () => {
         <div className="px-3 pb-2">
           <div className="space-y-2">
             {unseenConversations.slice(0, 3).map((conversation) => {
-              if (!user) return null;
+              if (!user || !conversation) return null;
 
               const otherUser = getOtherParticipant(conversation, user.id);
+              if (!otherUser) return null;
 
               return (
                 <div key={conversation.id} className="relative group">
@@ -138,9 +116,9 @@ const MainSidebar = () => {
                         variant="destructive"
                         className="absolute -bottom-1 -right-1 h-4 min-w-4 px-1 text-xs font-bold"
                       >
-                        {conversation.unread_count > 99
+                        {(conversation.unread_count || 0) > 99
                           ? "99+"
-                          : conversation.unread_count}
+                          : conversation.unread_count || 0}
                       </Badge>
                     </div>
                   </button>
@@ -165,55 +143,12 @@ const MainSidebar = () => {
         <div className="mx-4 h-px bg-border mb-2" />
       )}
 
-      {/* Scrollable Servers List */}
-      <ScrollArea className="flex-1 px-3">
+      {/* Server list removed - this app focuses on private messaging */}
+      <div className="flex-1 px-3">
         <div className="space-y-2">
-          {mockServers.map((server) => (
-            <div key={server.id} className="relative group">
-              <Link href={`/servers/${server.id}`} className="block">
-                <div className="relative">
-                  {server.icon ? (
-                    <Avatar className="h-12 w-12 rounded-2xl transition-all duration-200 group-hover:rounded-xl mx-auto">
-                      <AvatarImage src={server.icon} alt={server.name} />
-                      <AvatarFallback className="rounded-2xl group-hover:rounded-xl bg-primary/10 text-primary font-bold">
-                        {getServerInitials(server.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <div
-                      className={cn(
-                        "flex justify-center items-center h-12 w-12 rounded-2xl transition-all duration-200 mx-auto",
-                        "bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground group-hover:rounded-xl"
-                      )}
-                    >
-                      <span className="font-bold text-sm">
-                        {getServerInitials(server.name)}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Server notification badge */}
-                  {server.unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -bottom-1 -right-1 h-4 min-w-4 px-1 text-xs font-bold"
-                    >
-                      {server.unreadCount > 99 ? "99+" : server.unreadCount}
-                    </Badge>
-                  )}
-
-                  {/* Notification indicator (red dot for mentions) */}
-                  {server.hasNotification && server.unreadCount === 0 && (
-                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-destructive rounded-full border-2 border-background" />
-                  )}
-                </div>
-              </Link>
-
-              {/* Server name tooltip would go here in a real implementation */}
-            </div>
-          ))}
+          {/* Server functionality removed for private messaging focus */}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Search Button */}
       <div className="p-3">

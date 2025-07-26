@@ -31,6 +31,10 @@ type ConversationParticipant struct {
 	JoinedAt time.Time `json:"joined_at,omitempty"`
 	// LastReadAt holds the value of the "last_read_at" field.
 	LastReadAt time.Time `json:"last_read_at,omitempty"`
+	// IsArchived holds the value of the "is_archived" field.
+	IsArchived bool `json:"is_archived,omitempty"`
+	// IsMuted holds the value of the "is_muted" field.
+	IsMuted bool `json:"is_muted,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ConversationParticipantQuery when eager-loading is set.
 	Edges                     ConversationParticipantEdges `json:"edges"`
@@ -76,6 +80,8 @@ func (*ConversationParticipant) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case conversationparticipant.FieldIsArchived, conversationparticipant.FieldIsMuted:
+			values[i] = new(sql.NullBool)
 		case conversationparticipant.FieldID, conversationparticipant.FieldConversationID, conversationparticipant.FieldUserID:
 			values[i] = new(sql.NullString)
 		case conversationparticipant.FieldCreatedAt, conversationparticipant.FieldUpdatedAt, conversationparticipant.FieldJoinedAt, conversationparticipant.FieldLastReadAt:
@@ -138,6 +144,18 @@ func (cp *ConversationParticipant) assignValues(columns []string, values []any) 
 				return fmt.Errorf("unexpected type %T for field last_read_at", values[i])
 			} else if value.Valid {
 				cp.LastReadAt = value.Time
+			}
+		case conversationparticipant.FieldIsArchived:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_archived", values[i])
+			} else if value.Valid {
+				cp.IsArchived = value.Bool
+			}
+		case conversationparticipant.FieldIsMuted:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_muted", values[i])
+			} else if value.Valid {
+				cp.IsMuted = value.Bool
 			}
 		case conversationparticipant.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -209,6 +227,12 @@ func (cp *ConversationParticipant) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("last_read_at=")
 	builder.WriteString(cp.LastReadAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("is_archived=")
+	builder.WriteString(fmt.Sprintf("%v", cp.IsArchived))
+	builder.WriteString(", ")
+	builder.WriteString("is_muted=")
+	builder.WriteString(fmt.Sprintf("%v", cp.IsMuted))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -116,6 +116,12 @@ func (c *Controller) AcceptFriendRequest(e echo.Context) error {
 				Message: "Friend request not found",
 			})
 		}
+		if err.Error() == "cannot accept friend request from blocked user" {
+			return e.JSON(http.StatusForbidden, ErrorResponse{
+				Code:    http.StatusForbidden,
+				Message: "Cannot accept friend request from this user",
+			})
+		}
 		c.log.Error("controller: accept friend request failed", "error", err.Error())
 		return e.JSON(http.StatusInternalServerError, ErrorResponse{
 			Code:    http.StatusInternalServerError,

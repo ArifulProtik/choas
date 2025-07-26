@@ -17,6 +17,15 @@ import { NavigationSection } from "./navigation-section";
 
 export const ConversationList: React.FC = () => {
   const { user: currentUser } = useAuthStore();
+
+  const { addToRecentSearches } = useSearchStore();
+
+  // Local state for navigation section
+  const [activeSection, setActiveSection] = useState<string>("messages");
+
+  const router = useRouter();
+  const pathname = usePathname();
+
   const {
     getFilteredConversations,
     activeConversationId,
@@ -35,13 +44,6 @@ export const ConversationList: React.FC = () => {
     startConversation,
   } = useMessagingStore();
 
-  const { addToRecentSearches } = useSearchStore();
-
-  // Local state for navigation section
-  const [activeSection, setActiveSection] = useState<string>("messages");
-
-  const router = useRouter();
-  const pathname = usePathname();
   const conversations = getFilteredConversations();
   const totalUnreadCount = getUnreadCount();
 
@@ -132,7 +134,11 @@ export const ConversationList: React.FC = () => {
           </div>
         ) : error ? (
           <div className="flex items-center justify-center py-8">
-            <p className="text-destructive text-sm">{error}</p>
+            <p className="text-destructive text-sm">
+              {error instanceof Error
+                ? error.message
+                : "Failed to load conversations"}
+            </p>
           </div>
         ) : conversations.length === 0 ? (
           <EmptyState

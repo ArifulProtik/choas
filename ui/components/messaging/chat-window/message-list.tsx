@@ -81,7 +81,7 @@ export const MessageList: React.FC<MessageListProps> = ({
       scrollElement.scrollTop = scrollElement.scrollTop + scrollDiff;
       shouldMaintainScroll.current = false;
     }
-  }, [messages.length, scrollAreaRef]);
+  }, [messages.length]);
 
   // Auto-scroll to bottom on initial load and new messages
   useEffect(() => {

@@ -31,10 +31,14 @@ const (
 	FieldIsDeleted = "is_deleted"
 	// FieldEditedAt holds the string denoting the edited_at field in the database.
 	FieldEditedAt = "edited_at"
+	// FieldCallID holds the string denoting the call_id field in the database.
+	FieldCallID = "call_id"
 	// EdgeConversation holds the string denoting the conversation edge name in mutations.
 	EdgeConversation = "conversation"
 	// EdgeSender holds the string denoting the sender edge name in mutations.
 	EdgeSender = "sender"
+	// EdgeCall holds the string denoting the call edge name in mutations.
+	EdgeCall = "call"
 	// Table holds the table name of the message in the database.
 	Table = "messages"
 	// ConversationTable is the table that holds the conversation relation/edge.
@@ -51,6 +55,13 @@ const (
 	SenderInverseTable = "users"
 	// SenderColumn is the table column denoting the sender relation/edge.
 	SenderColumn = "sender_id"
+	// CallTable is the table that holds the call relation/edge.
+	CallTable = "messages"
+	// CallInverseTable is the table name for the Call entity.
+	// It exists in this package in order to avoid circular dependency with the "call" package.
+	CallInverseTable = "calls"
+	// CallColumn is the table column denoting the call relation/edge.
+	CallColumn = "call_id"
 )
 
 // Columns holds all SQL columns for message fields.
@@ -64,6 +75,7 @@ var Columns = []string{
 	FieldMessageType,
 	FieldIsDeleted,
 	FieldEditedAt,
+	FieldCallID,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "messages"
@@ -114,9 +126,11 @@ const DefaultMessageType = MessageTypeText
 
 // MessageType values.
 const (
-	MessageTypeText  MessageType = "text"
-	MessageTypeImage MessageType = "image"
-	MessageTypeFile  MessageType = "file"
+	MessageTypeText      MessageType = "text"
+	MessageTypeImage     MessageType = "image"
+	MessageTypeFile      MessageType = "file"
+	MessageTypeCallStart MessageType = "call_start"
+	MessageTypeCallEnd   MessageType = "call_end"
 )
 
 func (mt MessageType) String() string {
@@ -126,7 +140,7 @@ func (mt MessageType) String() string {
 // MessageTypeValidator is a validator for the "message_type" field enum values. It is called by the builders before save.
 func MessageTypeValidator(mt MessageType) error {
 	switch mt {
-	case MessageTypeText, MessageTypeImage, MessageTypeFile:
+	case MessageTypeText, MessageTypeImage, MessageTypeFile, MessageTypeCallStart, MessageTypeCallEnd:
 		return nil
 	default:
 		return fmt.Errorf("message: invalid enum value for message_type field: %q", mt)
@@ -181,6 +195,11 @@ func ByEditedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEditedAt, opts...).ToFunc()
 }
 
+// ByCallID orders the results by the call_id field.
+func ByCallID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCallID, opts...).ToFunc()
+}
+
 // ByConversationField orders the results by conversation field.
 func ByConversationField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -192,6 +211,13 @@ func ByConversationField(field string, opts ...sql.OrderTermOption) OrderOption 
 func BySenderField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newSenderStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCallField orders the results by call field.
+func ByCallField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCallStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newConversationStep() *sqlgraph.Step {
@@ -206,5 +232,12 @@ func newSenderStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SenderInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, SenderTable, SenderColumn),
+	)
+}
+func newCallStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CallInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CallTable, CallColumn),
 	)
 }
